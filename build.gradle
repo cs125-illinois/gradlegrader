@@ -1,0 +1,13 @@
+apply plugin: 'groovy'
+apply plugin: 'java-gradle-plugin'
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compile 'org.yaml:snakeyaml:1.18'
+    compile 'org.apache.httpcomponents:httpclient:4.5.3'
+}
+
+// vim: ts=4:sw=4:et:ft=groovy
