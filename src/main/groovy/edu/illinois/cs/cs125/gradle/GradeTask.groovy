@@ -2,6 +2,8 @@ package edu.illinois.cs.cs125.gradle
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.compile.JavaCompile
+import org.gradle.api.tasks.testing.Test
 
 import org.yaml.snakeyaml.Yaml
 import groovy.json.*
@@ -17,14 +19,12 @@ import org.apache.http.entity.*
 import org.apache.http.impl.client.*
 
 class GradeTask extends DefaultTask {
+
     def openXML(path) {
         return DOMBuilder.parse(new StringReader(path.text), false, false).documentElement
     }
 
     GradeTask() {
-        project.tasks.checkstyleMain.setIgnoreFailures(true)
-        project.tasks.checkstyleMain.outputs.upToDateWhen { false }
-
         doLast {
             // Load configurationdd
             Yaml yaml = new Yaml();
@@ -33,26 +33,28 @@ class GradeTask extends DefaultTask {
             gradeConfiguration.timestamp = System.currentTimeMillis()
 
             project.tasks.clean.execute()
+
             try {
                 project.tasks.checkstyleMain.execute()
-            } catch (Exception e) { }
+            } catch (Exception e) {
+            }
 
             def testOutputDirectories = []
             gradeConfiguration.files.each{name ->
                 try {
                     project.tasks.create(name: "compile" + name, type: JavaCompile) {
-                        source = sourceSets.main.java.srcDirs
+                        source = project.sourceSets.main.java.srcDirs
                         include name + ".java"
-                        classpath = sourceSets.main.compileClasspath
-                        destinationDir = sourceSets.main.output.classesDir
+                        classpath = project.sourceSets.main.compileClasspath
+                        destinationDir = project.sourceSets.main.output.classesDir
                     }.execute()
                 } catch (Exception e) { }
                 try {
                     project.tasks.create(name: "compileTest" + name, type: JavaCompile) {
-                        source = sourceSets.test.java.srcDirs
+                        source = project.sourceSets.test.java.srcDirs
                         include name + "Test.java"
-                        classpath = sourceSets.test.compileClasspath
-                        destinationDir = sourceSets.test.output.classesDir
+                        classpath = project.sourceSets.test.compileClasspath
+                        destinationDir = project.sourceSets.test.output.classesDir
                     }.execute()
                 } catch (Exception e) { }
                 try {
@@ -87,6 +89,7 @@ class GradeTask extends DefaultTask {
                         gradeConfiguration.checkstyle.selectors.remove(checkstyleSelector)
                     }
                 } catch (Exception e) {
+                    println e
                     gradeConfiguration.checkstyle.selectors = [ gradeConfiguration.checkstyle.missing ]
                 }
             }

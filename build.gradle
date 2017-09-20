@@ -9,11 +9,6 @@ buildscript {
 apply plugin: 'groovy'
 apply plugin: 'java-gradle-plugin'
 apply plugin: 'maven'
-apply plugin: 'com.github.johnrengelman.shadow'
-
-shadowJar {
-    configurations = [project.configurations.compile]
-}
 
 group = 'com.github.cs125-illinois'
 
@@ -36,9 +31,23 @@ repositories {
     jcenter()
 }
 
+configurations {
+    shadow
+}
+
 dependencies {
+    shadow 'org.yaml:snakeyaml:1.18'
+    shadow 'org.apache.httpcomponents:httpclient:4.5.3'
     compile 'org.yaml:snakeyaml:1.18'
     compile 'org.apache.httpcomponents:httpclient:4.5.3'
+}
+
+jar {
+    from {
+        configurations.shadow.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
 }
 
 // vim: ts=4:sw=4:et:ft=groovy
