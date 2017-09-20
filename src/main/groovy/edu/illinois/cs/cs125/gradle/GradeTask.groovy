@@ -22,8 +22,10 @@ class GradeTask extends DefaultTask {
     }
 
     GradeTask() {
+        /*
         tasks.checkstyleMain.setIgnoreFailures(true)
         tasks.checkstyleMain.outputs.upToDateWhen { false }
+        */
 
         doLast {
             // Load configuration
