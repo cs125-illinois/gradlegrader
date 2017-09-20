@@ -22,27 +22,25 @@ class GradeTask extends DefaultTask {
     }
 
     GradeTask() {
-        /*
-        tasks.checkstyleMain.setIgnoreFailures(true)
-        tasks.checkstyleMain.outputs.upToDateWhen { false }
-        */
+        project.tasks.checkstyleMain.setIgnoreFailures(true)
+        project.tasks.checkstyleMain.outputs.upToDateWhen { false }
 
         doLast {
-            // Load configuration
-            Yaml yaml = new Yaml()
-            def gradeConfiguration = yaml.load(file('config/grade/grade.yaml').text)
-            gradeConfiguration.students = yaml.load(file('config/grade/students.yaml').text)
+            // Load configurationdd
+            Yaml yaml = new Yaml();
+            def gradeConfiguration = yaml.load(project.file('config/grade/grade.yaml').text)
+            gradeConfiguration.students = yaml.load(project.file('config/grade/students.yaml').text)
             gradeConfiguration.timestamp = System.currentTimeMillis()
 
-            tasks.clean.execute()
+            project.tasks.clean.execute()
             try {
-                tasks.checkstyleMain.execute()
+                project.tasks.checkstyleMain.execute()
             } catch (Exception e) { }
 
             def testOutputDirectories = []
             gradeConfiguration.files.each{name ->
                 try {
-                    tasks.create(name: "compile" + name, type: JavaCompile) {
+                    project.tasks.create(name: "compile" + name, type: JavaCompile) {
                         source = sourceSets.main.java.srcDirs
                         include name + ".java"
                         classpath = sourceSets.main.compileClasspath
@@ -50,7 +48,7 @@ class GradeTask extends DefaultTask {
                     }.execute()
                 } catch (Exception e) { }
                 try {
-                    tasks.create(name: "compileTest" + name, type: JavaCompile) {
+                    project.tasks.create(name: "compileTest" + name, type: JavaCompile) {
                         source = sourceSets.test.java.srcDirs
                         include name + "Test.java"
                         classpath = sourceSets.test.compileClasspath
@@ -58,7 +56,7 @@ class GradeTask extends DefaultTask {
                     }.execute()
                 } catch (Exception e) { }
                 try {
-                    def test = tasks.create(name: "test" + name, type: Test, dependsOn: 'compileTest' + name) {
+                    def test = project.tasks.create(name: "test" + name, type: Test, dependsOn: 'compileTest' + name) {
                         useTestNG() {
                             useDefaultListeners = true
                         }
@@ -73,7 +71,7 @@ class GradeTask extends DefaultTask {
             // Investigate checkstyle results
             def toKeep = []
             if (gradeConfiguration.containsKey('checkstyle')) {
-                def checkstyleResultsPath = tasks.checkstyleMain.getReports().getXml().getDestination()
+                def checkstyleResultsPath = project.tasks.checkstyleMain.getReports().getXml().getDestination()
                 try {
                     def checkstyleResults = openXML(checkstyleResultsPath)
                     gradeConfiguration.checkstyle.remove('missing')
@@ -96,7 +94,7 @@ class GradeTask extends DefaultTask {
             def mergedXML = new XmlSlurper().parseText("<testsuites></testsuites>")
 
             // Investigate TestNG results
-            def testResultsDirectory = tasks.test.reports.getJunitXml().getDestination()
+            def testResultsDirectory = project.tasks.test.reports.getJunitXml().getDestination()
             toKeep = []
             testOutputDirectories.each{ testOutputDirectory ->
                 if (testOutputDirectory.exists()) {
