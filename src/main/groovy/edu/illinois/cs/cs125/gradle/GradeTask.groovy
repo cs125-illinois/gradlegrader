@@ -1,6 +1,8 @@
 package edu.illinois.cs.cs125.gradle
 
 import org.gradle.api.DefaultTask
+import org.gradle.api.provider.PropertyState
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.testing.Test
@@ -22,6 +24,12 @@ import org.apache.http.impl.client.*
  * Class implementing our Gradle grade task.
  */
 class GradeTask extends DefaultTask {
+
+    @Internal
+    final PropertyState<String> gradeConfigurationPath = project.property(String)
+
+    @Internal
+    final PropertyState<String> studentsConfigurationPath = project.property(String)
 
     /**
      * Open an XML file given a path.
@@ -51,8 +59,8 @@ class GradeTask extends DefaultTask {
     def gradeAssignment() throws Exception {
 
         Yaml yaml = new Yaml();
-        def gradeConfiguration = yaml.load(project.file('config/grade/grade.yaml').text)
-        gradeConfiguration.students = yaml.load(project.file('config/grade/students.yaml').text)
+        def gradeConfiguration = yaml.load(project.file(gradeConfigurationPath.get()).text)
+        gradeConfiguration.students = yaml.load(project.file(studentsConfigurationPath.get()).text)
         gradeConfiguration.timestamp = System.currentTimeMillis()
 
         project.tasks.clean.execute()
@@ -73,7 +81,7 @@ class GradeTask extends DefaultTask {
                     source = project.sourceSets.main.java.srcDirs
                     include name + ".java"
                     classpath = project.sourceSets.main.compileClasspath
-                    destinationDir = project.sourceSets.main.output.classesDir
+                    destinationDir = project.sourceSets.main.java.outputDir
                 }.execute()
             } catch (Exception e) { }
             try {
@@ -81,7 +89,7 @@ class GradeTask extends DefaultTask {
                     source = project.sourceSets.test.java.srcDirs
                     include name + "Test.java"
                     classpath = project.sourceSets.test.compileClasspath
-                    destinationDir = project.sourceSets.test.output.classesDir
+                    destinationDir = project.sourceSets.test.java.outputDir
                 }.execute()
             } catch (Exception e) { }
             try {

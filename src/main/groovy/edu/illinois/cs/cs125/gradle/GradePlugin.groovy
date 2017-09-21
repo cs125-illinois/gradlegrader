@@ -7,7 +7,11 @@ import org.gradle.api.Plugin
  * Plugin containing our grade task.
  */
 class GradePlugin implements Plugin<Project> {
-    void apply(Project target) {
-        target.task('grade', type: GradeTask)
+    void apply(Project project) {
+        def extension = project.extensions.create('grade', GradePluginExtension, project)
+        project.tasks.create('grade', GradeTask) {
+            gradeConfigurationPath = extension.gradeConfigurationPath
+            studentsConfigurationPath = extension.studentsConfigurationPath
+        }
     }
 }
