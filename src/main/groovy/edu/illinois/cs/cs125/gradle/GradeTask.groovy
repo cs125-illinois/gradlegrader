@@ -68,6 +68,7 @@ class GradeTask extends DefaultTask {
 
         project.tasks.clean.execute()
         project.tasks.checkstyleMain.execute()
+        project.tasks.processTestResources.execute()
 
         /*
          * We want to ignore errors in this block because we want to continue even if
