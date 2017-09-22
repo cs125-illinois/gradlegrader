@@ -12,6 +12,9 @@ import groovy.json.*
 import static groovy.io.FileType.FILES
 
 import static javax.xml.xpath.XPathConstants.*
+
+import java.nio.file.Paths
+
 import javax.xml.xpath.*
 import groovy.xml.DOMBuilder
 import groovy.xml.dom.DOMCategory
@@ -71,7 +74,8 @@ class GradeTask extends DefaultTask {
          * compiling or testing fails.
          *
          * Note that the idea of executing tests is usually a no-no in Gradle.
-         * But we have to do this if we want to give students partial credit.
+         * But we have to do this if we want to give students partial credit,
+         * since otherwise a single compilation failure will fail the entire build.
          */
 
         def testOutputDirectories = []
@@ -103,7 +107,9 @@ class GradeTask extends DefaultTask {
             } catch (Exception e) { }
         }
 
-        // Investigate checkstyle results
+        /*
+         * Investigate checkstyle results.
+         */
         def toKeep = []
         if (gradeConfiguration.containsKey('checkstyle')) {
             def checkstyleResultsPath = project.tasks.checkstyleMain.getReports().getXml().getDestination()
@@ -122,16 +128,20 @@ class GradeTask extends DefaultTask {
                     gradeConfiguration.checkstyle.selectors.remove(checkstyleSelector)
                 }
             } catch (Exception e) {
-                println e
                 gradeConfiguration.checkstyle.selectors = [
                     gradeConfiguration.checkstyle.missing
                 ]
             }
         }
 
+        /*
+         * Investigate TestNG results.
+         *
+         * We merge all TestNG results into a single XML file.
+         * This simplifies selector design, since they can all match in a single file.
+         */
         def mergedXML = new XmlSlurper().parseText("<testsuites></testsuites>")
 
-        // Investigate TestNG results
         def testResultsDirectory = project.tasks.test.reports.getJunitXml().getDestination()
         toKeep = []
         testOutputDirectories.each{ testOutputDirectory ->
@@ -180,13 +190,25 @@ class GradeTask extends DefaultTask {
 
         gradeConfiguration.totalScore = totalScore
 
-        def gradePost = new HttpPost(gradeConfiguration.post)
-        gradePost.addHeader("content-type", "application/json")
-        gradePost.setEntity(new StringEntity(JsonOutput.toJson(gradeConfiguration)))
+        if (gradeConfiguration.reporting) {
+            if (gradeConfiguration.reporting.post) {
+                def gradePost = new HttpPost(gradeConfiguration.reporting.post)
+                gradePost.addHeader("content-type", "application/json")
+                gradePost.setEntity(new StringEntity(JsonOutput.toJson(gradeConfiguration)))
 
-        def client = HttpClientBuilder.create().build()
-        try {
-            def response = client.execute(gradePost)
-        } catch (Exception e) { }
+                def client = HttpClientBuilder.create().build()
+                try {
+                    def response = client.execute(gradePost)
+                } catch (Exception e) { }
+            }
+            if (gradeConfiguration.reporting.directory) {
+                def filename = Paths.get(gradeConfiguration.reporting.directory, gradeConfiguration.students.join("_") + ".json")
+                println filename
+                def file = new File(filename.toString())
+                def writer = file.newWriter()
+                writer << JsonOutput.toJson(gradeConfiguration);
+                writer.close();
+            }
+        }
     }
 }
