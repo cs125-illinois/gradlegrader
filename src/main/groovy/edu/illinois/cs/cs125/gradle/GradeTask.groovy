@@ -44,6 +44,23 @@ class GradeTask extends DefaultTask {
         return DOMBuilder.parse(new StringReader(path.text), false, false).documentElement
     }
 
+    def fill(text, width=78, prefix='') {
+        width = width - prefix.size()
+        def out = []
+        List words = text.replaceAll("\n", " ").split(" ")
+        while (words) {
+            def line = ''
+            while (words) {
+                if (line.size() + words[0].size() + 1 > width) break
+                if (line) line += ' '
+                line += words[0]
+                words = words.tail()
+            }
+            out += prefix + line
+        }
+        out.join("\n")
+    }
+
     /**
      * Create a new grade task.
      */
@@ -112,7 +129,7 @@ class GradeTask extends DefaultTask {
          * Investigate checkstyle results.
          */
         def toKeep = []
-        if (gradeConfiguration.containsKey('checkstyle')) {
+        if (gradeConfiguration.checkstyle) {
             def checkstyleResultsPath = project.tasks.checkstyleMain.getReports().getXml().getDestination()
             try {
                 def checkstyleResults = openXML(checkstyleResultsPath)
@@ -188,6 +205,11 @@ class GradeTask extends DefaultTask {
         print totalScore.toString().padLeft(8)
         print '\n'
         println "".padRight(78, "-")
+
+        if (gradeConfiguration.notes) {
+            println fill(gradeConfiguration.notes)
+            println "".padRight(78, "-")
+        }
 
         gradeConfiguration.totalScore = totalScore
 
