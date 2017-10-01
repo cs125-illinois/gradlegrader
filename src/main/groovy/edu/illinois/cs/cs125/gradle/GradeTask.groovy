@@ -85,6 +85,8 @@ class GradeTask extends DefaultTask {
 
         project.tasks.clean.execute()
         project.tasks.checkstyleMain.execute()
+        def mainResourcesDir = project.tasks.processResources.getDestinationDir()
+        project.tasks.processResources.execute()
         project.tasks.processTestResources.execute()
 
         /*
@@ -119,6 +121,12 @@ class GradeTask extends DefaultTask {
                     useTestNG() { useDefaultListeners = true }
                     reports.html.enabled = false
                     include "**" + name + "Test**"
+                }
+                if (gradeConfiguration.secure) {
+                    test.jvmArgs("-Djava.security.manager=net.sourceforge.prograde.sm.ProGradeJSM")
+                    test.jvmArgs("-Djava.security.policy=" + gradeConfiguration.secure)
+                    test.systemProperties(["main.sources": project.sourceSets.main.java.outputDir])
+                    test.systemProperties(["main.resources": mainResourcesDir])
                 }
                 testOutputDirectories.add(test.reports.getJunitXml().getDestination())
                 test.execute()
@@ -226,7 +234,6 @@ class GradeTask extends DefaultTask {
             }
             if (gradeConfiguration.reporting.directory) {
                 def filename = Paths.get(gradeConfiguration.reporting.directory, gradeConfiguration.students.join("_") + ".json")
-                println filename
                 def file = new File(filename.toString())
                 def writer = file.newWriter()
                 writer << JsonOutput.toJson(gradeConfiguration);
