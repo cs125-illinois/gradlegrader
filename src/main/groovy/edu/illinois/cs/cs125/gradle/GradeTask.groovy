@@ -232,7 +232,7 @@ class GradeTask extends DefaultTask {
                     def response = client.execute(gradePost)
                 } catch (Exception e) { }
             }
-            if (gradeConfiguration.reporting.directory) {
+            if (gradeConfiguration.reporting.containsKey("directory")) {
                 def filename = Paths.get(gradeConfiguration.reporting.directory, gradeConfiguration.students.join("_") + ".json")
                 def file = new File(filename.toString())
                 def writer = file.newWriter()
