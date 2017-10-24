@@ -99,38 +99,49 @@ class GradeTask extends DefaultTask {
          */
 
         def testOutputDirectories = []
-        gradeConfiguration.files.each{name ->
+        gradeConfiguration.files.each{info ->
+            def compile, testCompile, test
+            try {
+                compile = info.compile
+                testCompile = info.test + "Test.java"
+                test = info.test + "Test"
+            } catch (Exception e) {
+                compile = info + ".java"
+                testCompile = info + "Test.java"
+                test = info + "Test"
+            }
             try {
                 project.tasks.create(name: "compile" + name, type: JavaCompile) {
                     source = project.sourceSets.main.java.srcDirs
-                    include name + ".java"
+                    include compile
                     classpath = project.sourceSets.main.compileClasspath
                     destinationDir = project.sourceSets.main.java.outputDir
                 }.execute()
-            } catch (Exception e) { }
+            } catch (Exception e) {}
             try {
                 project.tasks.create(name: "compileTest" + name, type: JavaCompile) {
                     source = project.sourceSets.test.java.srcDirs
-                    include name + "Test.java"
+                    include testCompile
                     classpath = project.sourceSets.test.compileClasspath
                     destinationDir = project.sourceSets.test.java.outputDir
                 }.execute()
-            } catch (Exception e) { }
+            } catch (Exception e) {}
             try {
-                def test = project.tasks.create(name: "test" + name, type: Test, dependsOn: 'compileTest' + name) {
+                def testTask = project.tasks.create(name: "test" + name, type: Test, dependsOn: 'compileTest' + name) {
                     useTestNG() { useDefaultListeners = true }
                     reports.html.enabled = false
-                    include "**" + name + "Test**"
+                    include "**" + test + "**"
                 }
-                if (gradeConfiguration.secure) {
-                    test.jvmArgs("-Djava.security.manager=net.sourceforge.prograde.sm.ProGradeJSM")
-                    test.jvmArgs("-Djava.security.policy=" + gradeConfiguration.secure)
-                    test.systemProperties(["main.sources": project.sourceSets.main.java.outputDir])
-                    test.systemProperties(["main.resources": mainResourcesDir])
+                if (project.findProperty("secure") == "true" && gradeConfiguration.secure) {
+                    gradeConfiguration.secureRun = true;
+                    testTask.jvmArgs("-Djava.security.manager=net.sourceforge.prograde.sm.ProGradeJSM")
+                    testTask.jvmArgs("-Djava.security.policy=" + gradeConfiguration.secure)
+                    testTask.systemProperties(["main.sources": project.sourceSets.main.java.outputDir])
+                    testTask.systemProperties(["main.resources": mainResourcesDir])
                 }
-                testOutputDirectories.add(test.reports.getJunitXml().getDestination())
-                test.execute()
-            } catch (Exception e) { }
+                testOutputDirectories.add(testTask.reports.getJunitXml().getDestination())
+                testTask.execute()
+            } catch (Exception e) {}
         }
 
         /*
@@ -222,7 +233,8 @@ class GradeTask extends DefaultTask {
         gradeConfiguration.totalScore = totalScore
 
         if (gradeConfiguration.reporting) {
-            if (gradeConfiguration.reporting.post) {
+            def destination = project.findProperty("reporting") ?: gradeConfiguration.reporting.default;
+            if (destination == "post" && gradeConfiguration.reporting.post) {
                 def gradePost = new HttpPost(gradeConfiguration.reporting.post)
                 gradePost.addHeader("content-type", "application/json")
                 gradePost.setEntity(new StringEntity(JsonOutput.toJson(gradeConfiguration)))
@@ -231,8 +243,7 @@ class GradeTask extends DefaultTask {
                 try {
                     def response = client.execute(gradePost)
                 } catch (Exception e) { }
-            }
-            if (gradeConfiguration.reporting.containsKey("directory")) {
+            } else if (destination == "directory" && gradeConfiguration.reporting.containsKey("directory")) {
                 def filename = Paths.get(gradeConfiguration.reporting.directory, gradeConfiguration.students.join("_") + ".json")
                 def file = new File(filename.toString())
                 def writer = file.newWriter()
