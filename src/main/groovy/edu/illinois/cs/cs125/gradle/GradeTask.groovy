@@ -6,6 +6,7 @@ import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.testing.Test
+import org.gradle.api.logging.StandardOutputListener
 
 import org.yaml.snakeyaml.Yaml
 import groovy.json.*
@@ -61,6 +62,15 @@ class GradeTask extends DefaultTask {
         out.join("\n")
     }
 
+    def addListener(task, listener) {
+        task.logging.addStandardErrorListener(listener)
+        task.logging.addStandardOutputListener(listener)
+
+        task.doLast {
+            task.logging.removeStandardOutputListener(listener)
+            task.logging.removeStandardErrorListener(listener)
+        }
+    }
     /**
      * Create a new grade task.
      */
@@ -73,7 +83,7 @@ class GradeTask extends DefaultTask {
     }
 
     /**
-     * Actually grade the assignment.
+     * Grade an assignment.
      */
     @TaskAction
     def gradeAssignment() throws Exception {
@@ -83,6 +93,14 @@ class GradeTask extends DefaultTask {
         gradeConfiguration.students = yaml.load(project.file(studentsConfigurationPath.get()).text)
         gradeConfiguration.timestamp = System.currentTimeMillis()
 
+        def taskOutput = ''
+        def listener = { taskOutput += it } as StandardOutputListener
+        [project.tasks.clean,
+            project.tasks.checkstyleMain,
+            project.tasks.processResources,
+            project.tasks.processTestResources].each { task ->
+            addListener(task, listener)
+        }
         project.tasks.clean.execute()
         project.tasks.checkstyleMain.execute()
         def mainResourcesDir = project.tasks.processResources.getDestinationDir()
@@ -111,20 +129,24 @@ class GradeTask extends DefaultTask {
                 test = info + "Test"
             }
             try {
-                project.tasks.create(name: "compile" + name, type: JavaCompile) {
+                def compileTask = project.tasks.create(name: "compile" + name, type: JavaCompile) {
                     source = project.sourceSets.main.java.srcDirs
                     include compile
                     classpath = project.sourceSets.main.compileClasspath
                     destinationDir = project.sourceSets.main.java.outputDir
-                }.execute()
+                }
+                addListener(compileTask, listener)
+                compileTask.execute()
             } catch (Exception e) {}
             try {
-                project.tasks.create(name: "compileTest" + name, type: JavaCompile) {
+                def testCompileTask = project.tasks.create(name: "compileTest" + name, type: JavaCompile) {
                     source = project.sourceSets.test.java.srcDirs
                     include testCompile
                     classpath = project.sourceSets.test.compileClasspath
                     destinationDir = project.sourceSets.test.java.outputDir
-                }.execute()
+                }
+                addListener(testCompileTask, listener)
+                testCompileTask.execute()
             } catch (Exception e) {}
             try {
                 def testTask = project.tasks.create(name: "test" + name, type: Test, dependsOn: 'compileTest' + name) {
@@ -132,6 +154,7 @@ class GradeTask extends DefaultTask {
                     reports.html.enabled = false
                     include "**" + test + "**"
                 }
+                addListener(testTask, listener)
                 if (project.hasProperty("grade.secure") && gradeConfiguration.secure) {
                     gradeConfiguration.secureRun = true;
                     testTask.jvmArgs("-Djava.security.manager=net.sourceforge.prograde.sm.ProGradeJSM")
@@ -229,12 +252,13 @@ class GradeTask extends DefaultTask {
             println fill(gradeConfiguration.notes)
             println "".padRight(78, "-")
         }
-
+        if (project.hasProperty("grade.capture")) {
+            gradeConfiguration.output = taskOutput
+        }
         gradeConfiguration.totalScore = totalScore
 
         if (gradeConfiguration.reporting) {
             def destination = project.findProperty("grade.reporting") ?: gradeConfiguration.reporting.default;
-            println destination
             if (destination == "post" && gradeConfiguration.reporting.post) {
                 def gradePost = new HttpPost(gradeConfiguration.reporting.post)
                 gradePost.addHeader("content-type", "application/json")
