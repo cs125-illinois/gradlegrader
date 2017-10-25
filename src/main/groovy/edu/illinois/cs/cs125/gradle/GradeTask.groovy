@@ -118,15 +118,17 @@ class GradeTask extends DefaultTask {
 
         def testOutputDirectories = []
         gradeConfiguration.files.each{info ->
-            def compile, testCompile, test
+            def compile, testCompile, test, name
             try {
                 compile = info.compile
                 testCompile = info.test + "Test.java"
                 test = info.test + "Test"
+                name = info.test
             } catch (Exception e) {
                 compile = info + ".java"
                 testCompile = info + "Test.java"
                 test = info + "Test"
+                name = info
             }
             try {
                 def compileTask = project.tasks.create(name: "compile" + name, type: JavaCompile) {
