@@ -132,7 +132,7 @@ class GradeTask extends DefaultTask {
                     reports.html.enabled = false
                     include "**" + test + "**"
                 }
-                if (project.findProperty("secure") == "true" && gradeConfiguration.secure) {
+                if (project.hasProperty("grade.secure") && gradeConfiguration.secure) {
                     gradeConfiguration.secureRun = true;
                     testTask.jvmArgs("-Djava.security.manager=net.sourceforge.prograde.sm.ProGradeJSM")
                     testTask.jvmArgs("-Djava.security.policy=" + gradeConfiguration.secure)
@@ -233,7 +233,8 @@ class GradeTask extends DefaultTask {
         gradeConfiguration.totalScore = totalScore
 
         if (gradeConfiguration.reporting) {
-            def destination = project.findProperty("reporting") ?: gradeConfiguration.reporting.default;
+            def destination = project.findProperty("grade.reporting") ?: gradeConfiguration.reporting.default;
+            println destination
             if (destination == "post" && gradeConfiguration.reporting.post) {
                 def gradePost = new HttpPost(gradeConfiguration.reporting.post)
                 gradePost.addHeader("content-type", "application/json")
