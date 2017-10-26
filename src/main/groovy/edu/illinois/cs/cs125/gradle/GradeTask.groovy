@@ -100,7 +100,7 @@ class GradeTask extends DefaultTask {
                 destination = project.findProperty("grade.reporting")
             } else if (project.hasProperty("grade.reporting.file")) {
                 destination = "file";
-                gradeConfiguration.file = project.findProperty("grade.reporting.file")
+                gradeConfiguration.reporting.file = project.findProperty("grade.reporting.file")
             } else {
                 if (gradeConfiguration.reporting.size() == 1) {
                     destination = gradeConfiguration.reporting.keySet().toArray()[0];
