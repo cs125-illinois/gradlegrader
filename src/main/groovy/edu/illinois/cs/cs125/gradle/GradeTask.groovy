@@ -6,6 +6,7 @@ import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.testing.Test
+import org.gradle.internal.impldep.org.apache.maven.model.plugin.DefaultReportingConverter
 import org.gradle.api.logging.StandardOutputListener
 
 import org.yaml.snakeyaml.Yaml
@@ -93,6 +94,22 @@ class GradeTask extends DefaultTask {
         gradeConfiguration.students = yaml.load(project.file(studentsConfigurationPath.get()).text)
         gradeConfiguration.timestamp = System.currentTimeMillis()
 
+        def destination;
+        if (gradeConfiguration.reporting) {
+            if (project.hasProperty("grade.reporting")) {
+                destination = project.findProperty("grade.reporting")
+            } else if (project.hasProperty("grade.reporting.file")) {
+                destination = "file";
+                gradeConfiguration.file = project.findProperty("grade.reporting.file")
+            } else {
+                if (gradeConfiguration.reporting.size() == 1) {
+                    destination = gradeConfiguration.reporting.keySet().toArray()[0];
+                } else {
+                    destination = gradeConfiguration.reporting.default;
+                }
+            }
+            assert gradeConfiguration.reporting[destination]
+        }
         def taskOutput = ''
         def listener = { taskOutput += it } as StandardOutputListener
         [project.tasks.clean,
@@ -270,11 +287,7 @@ class GradeTask extends DefaultTask {
         }
 
         if (gradeConfiguration.reporting) {
-            def destination = project.findProperty("grade.reporting") ?: gradeConfiguration.reporting.default;
-            if (project.hasProperty("grade.reporting.file")) {
-                destination = "file";
-            }
-            if (destination == "post" && gradeConfiguration.reporting.post) {
+            if (destination == "post") {
                 def gradePost = new HttpPost(gradeConfiguration.reporting.post)
                 gradePost.addHeader("content-type", "application/json")
                 gradePost.setEntity(new StringEntity(JsonOutput.toJson(gradeConfiguration)))
@@ -283,12 +296,6 @@ class GradeTask extends DefaultTask {
                 try {
                     def response = client.execute(gradePost)
                 } catch (Exception e) { }
-            } else if (destination == "directory" && gradeConfiguration.reporting.containsKey("directory")) {
-                def filename = Paths.get(gradeConfiguration.reporting.directory, gradeConfiguration.students.join("_") + ".json")
-                def file = new File(filename.toString())
-                def writer = file.newWriter()
-                writer << JsonOutput.toJson(gradeConfiguration);
-                writer.close();
             } else if (destination == "file") {
                 def filename = project.findProperty("grade.reporting.file") ?: gradeConfiguration.reporting.file;
                 def file = new File(filename.toString())
