@@ -228,7 +228,22 @@ class GradeTask extends DefaultTask {
             gradeConfiguration.test.selectors.remove(testSelector)
         }
 
+        /*
+         * Complete adding information to the output object.
+         */
         def totalScore = 0
+        gradeConfiguration.each{ unused, v ->
+            if (v instanceof Map && v.containsKey('selectors')) {
+                v.selectors.each{ selector ->
+                    totalScore += selector.score
+                }
+            }
+        }
+        if (project.hasProperty("grade.capture")) {
+            gradeConfiguration.output = taskOutput
+        }
+        gradeConfiguration.totalScore = totalScore
+
         println ""
         println "".padRight(78, "-")
         println gradeConfiguration.name + " Grade Summary"
@@ -240,7 +255,6 @@ class GradeTask extends DefaultTask {
                     print selector.score.toString().padLeft(8)
                     print "     " + selector.message
                     print '\n'
-                    totalScore += selector.score
                 }
             }
         }
@@ -254,13 +268,12 @@ class GradeTask extends DefaultTask {
             println fill(gradeConfiguration.notes)
             println "".padRight(78, "-")
         }
-        if (project.hasProperty("grade.capture")) {
-            gradeConfiguration.output = taskOutput
-        }
-        gradeConfiguration.totalScore = totalScore
 
         if (gradeConfiguration.reporting) {
             def destination = project.findProperty("grade.reporting") ?: gradeConfiguration.reporting.default;
+            if (project.hasProperty("grade.reporting.file")) {
+                destination = "file";
+            }
             if (destination == "post" && gradeConfiguration.reporting.post) {
                 def gradePost = new HttpPost(gradeConfiguration.reporting.post)
                 gradePost.addHeader("content-type", "application/json")
@@ -272,6 +285,12 @@ class GradeTask extends DefaultTask {
                 } catch (Exception e) { }
             } else if (destination == "directory" && gradeConfiguration.reporting.containsKey("directory")) {
                 def filename = Paths.get(gradeConfiguration.reporting.directory, gradeConfiguration.students.join("_") + ".json")
+                def file = new File(filename.toString())
+                def writer = file.newWriter()
+                writer << JsonOutput.toJson(gradeConfiguration);
+                writer.close();
+            } else if (destination == "file") {
+                def filename = project.findProperty("grade.reporting.file") ?: gradeConfiguration.reporting.file;
                 def file = new File(filename.toString())
                 def writer = file.newWriter()
                 writer << JsonOutput.toJson(gradeConfiguration);
