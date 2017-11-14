@@ -19,6 +19,7 @@ import java.nio.file.Paths
 
 import javax.xml.xpath.*
 import groovy.xml.DOMBuilder
+import groovy.xml.XmlUtil
 import groovy.xml.dom.DOMCategory
 
 import org.apache.http.client.methods.*
@@ -239,6 +240,7 @@ class GradeTask extends DefaultTask {
                 }
             }
         }
+        gradeConfiguration.testXML = XmlUtil.serialize(mergedXML)
 
         def toRemove = gradeConfiguration.test.selectors - toKeep
         toRemove.each { testSelector ->
