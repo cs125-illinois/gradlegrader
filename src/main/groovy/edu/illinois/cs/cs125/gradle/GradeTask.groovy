@@ -1,6 +1,11 @@
 package edu.illinois.cs.cs125.gradle
 
+import org.apache.commons.validator.routines.EmailValidator
+import org.eclipse.jgit.lib.Constants
+import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
 import org.gradle.api.provider.PropertyState
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
@@ -88,11 +93,63 @@ class GradeTask extends DefaultTask {
      * Grade an assignment.
      */
     @TaskAction
-    def gradeAssignment() throws Exception {
+    def gradeAssignment() {
 
-        Yaml yaml = new Yaml();
+        def yaml = new Yaml()
         def gradeConfiguration = yaml.load(project.file(gradeConfigurationPath.get()).text)
-        gradeConfiguration.students = yaml.load(project.file(studentsConfigurationPath.get()).text)
+
+        if (gradeConfiguration.vcs && gradeConfiguration.vcs.git) {
+            try {
+                def gitRepository = new FileRepositoryBuilder().setMustExist(true).findGitDir().build()
+                def config = gitRepository.config
+                def remoteURLs = [:]
+                config.getSubsections('remote').each { remote ->
+                    remoteURLs[remote] = config.getString('remote', remote, 'url')
+                }
+                gradeConfiguration.git = [
+                        remotes: remoteURLs,
+                        user   : [
+                                name : config.getString("user", null, "name"),
+                                email: config.getString("user", null, "email")
+                        ]
+                ]
+
+            } catch (Exception e) { }
+        }
+        if (gradeConfiguration.students) {
+            def emails = []
+            try {
+                emails = new File(gradeConfiguration.students.location).text.trim().split("\n")
+            } catch (Exception e) {
+                if (gradeConfiguration.students.require) {
+                    System.err << "FAILURE: Before running the autograder, please add your email address to " + gradeConfiguration.students.location
+                    throw new GradleException("missing email address")
+                }
+            }
+            if (gradeConfiguration.students.require) {
+                try {
+                    emails.each { email ->
+                        if (!EmailValidator.getInstance().isValid(email)) {
+                            System.err << "FAILURE: " + email + " is not a valid email address"
+                            throw new GradleException("invalid email address")
+                        }
+                        if (gradeConfiguration.students.suffix) {
+                            def emailParts = email.split("@")
+                            if (!(emailParts[0] + gradeConfiguration.students.suffix).equals(email)) {
+                                System.err << "FAILURE: " + email + " is not an " + gradeConfiguration.students.suffix + " email address"
+                                throw new GradleException("incorrect email address")
+                            }
+                        }
+                    }
+                } catch (GradleException e) {
+                    throw (e)
+                } catch (Exception e) {
+                    System.err << "FAILURE: failure validating email addresses " + e
+                    throw new GradleException("email validation failure")
+                }
+                gradeConfiguration.people = emails
+            }
+        }
         gradeConfiguration.timestamp = System.currentTimeMillis()
 
         def destination;

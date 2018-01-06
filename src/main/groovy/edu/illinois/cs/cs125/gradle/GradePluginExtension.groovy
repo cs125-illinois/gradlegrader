@@ -11,7 +11,6 @@ class GradePluginExtension {
         gradeConfigurationPath = project.property(String)
         studentsConfigurationPath = project.property(String)
 
-        gradeConfigurationPath.set('config/grade/grade.yaml')
-        studentsConfigurationPath.set('config/grade/students.yaml')
+        gradeConfigurationPath.set('config/grade.yaml')
     }
 }
