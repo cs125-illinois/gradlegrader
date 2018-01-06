@@ -1,8 +1,12 @@
-.gradle
 !gradle-wrapper.jar
-/bin/
+/.gradle
+/out/
 /build/
 /test-output/
-/.settings/org.eclipse.buildship.core.prefs
+*.class
 *.swp
 *.swo
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/.name
+.idea/modules/test-output/
