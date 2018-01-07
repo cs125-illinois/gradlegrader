@@ -11,7 +11,6 @@ class GradePlugin implements Plugin<Project> {
         def extension = project.extensions.create('grade', GradePluginExtension, project)
         project.tasks.create('grade', GradeTask) {
             gradeConfigurationPath = extension.gradeConfigurationPath
-            studentsConfigurationPath = extension.studentsConfigurationPath
         }
     }
 }

@@ -2,7 +2,6 @@ package edu.illinois.cs.cs125.gradle
 
 import org.apache.commons.validator.routines.EmailValidator
 import org.eclipse.jgit.lib.Constants
-import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
@@ -11,18 +10,13 @@ import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.testing.Test
-import org.gradle.internal.impldep.org.apache.maven.model.plugin.DefaultReportingConverter
 import org.gradle.api.logging.StandardOutputListener
 
 import org.yaml.snakeyaml.Yaml
 import groovy.json.*
-import static groovy.io.FileType.FILES
 
 import static javax.xml.xpath.XPathConstants.*
 
-import java.nio.file.Paths
-
-import javax.xml.xpath.*
 import groovy.xml.DOMBuilder
 import groovy.xml.XmlUtil
 import groovy.xml.dom.DOMCategory
@@ -95,26 +89,39 @@ class GradeTask extends DefaultTask {
     @TaskAction
     def gradeAssignment() {
 
+        /*
+         * Load the configuration file.
+         */
         def yaml = new Yaml()
         def gradeConfiguration = yaml.load(project.file(gradeConfigurationPath.get()).text)
 
+        /*
+         * If configured, try to extract some information about their repository.
+         */
         if (gradeConfiguration.vcs && gradeConfiguration.vcs.git) {
             try {
-                def gitRepository = new FileRepositoryBuilder().setMustExist(true).findGitDir().build()
+                def gitRepository = new FileRepositoryBuilder()
+                        .setMustExist(true)
+                        .addCeilingDirectory(new File("."))
+                        .findGitDir()
+                        .build()
                 def config = gitRepository.config
                 def remoteURLs = [:]
                 config.getSubsections('remote').each { remote ->
                     remoteURLs[remote] = config.getString('remote', remote, 'url')
                 }
-                gradeConfiguration.git = [
+                gradeConfiguration.vcs.git = [
                         remotes: remoteURLs,
-                        user   : [
+                        user: [
                                 name : config.getString("user", null, "name"),
                                 email: config.getString("user", null, "email")
-                        ]
+                        ],
+                        head: gitRepository.resolve(Constants.HEAD).name
                 ]
 
-            } catch (Exception e) { }
+            } catch (Exception e) {
+                println e
+            }
         }
         if (gradeConfiguration.students) {
             def emails = []
@@ -147,7 +154,7 @@ class GradeTask extends DefaultTask {
                     System.err << "FAILURE: failure validating email addresses " + e
                     throw new GradleException("email validation failure")
                 }
-                gradeConfiguration.people = emails
+                gradeConfiguration.students.people = emails
             }
         }
         gradeConfiguration.timestamp = System.currentTimeMillis()
@@ -346,6 +353,7 @@ class GradeTask extends DefaultTask {
         }
 
         if (gradeConfiguration.reporting) {
+            gradeConfiguration.reporting.used = destination
             if (destination == "post") {
                 def gradePost = new HttpPost(gradeConfiguration.reporting.post)
                 gradePost.addHeader("content-type", "application/json")
