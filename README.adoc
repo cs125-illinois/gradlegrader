@@ -1,0 +1,468 @@
+= Gradle Grading Plugin
+
+This Gradle plugin attempts to enable local autograding for Java-based
+assignments. This is non-trivial to accomplish, mainly because of the way that
+Gradle works. But this is a decent attempt.
+
+== Features
+
+* Highly-configurable build and grading logic
+* Declarative grading and scoring configuration requires no additional code for
+  simple use cases
+* Parses output from TestNG, `checkstyle`, and (probably) JUnit to assign points
+* Can force students to identify themselves through a text file, to both help
+  track progress and eliminate problems downstream
+* Pretty-printed output to standard out for student inspection
+* Multiple reporting options for structured data, including local file dump and
+  remote POST
+
+== Use
+
+You will need to add something like this to your `build.gradle` file, where
+`CURRENT_VERSION` is the version that you want to use. I believe that this has
+to come _after_ you apply the Java and `checkstyle` plugins footnote:[Gradle
+has stupid ordering dependencies in the configuration file.].
+
+[source,groovy]
+----
+buildscript {
+    repositories {
+        jcenter()
+        maven { url 'https://jitpack.io' }
+    }
+    dependencies {
+        classpath 'org.eclipse.jgit:org.eclipse.jgit:4.10.0.201712302008-r'
+        classpath 'com.github.cs125-illinois:gradle:CURRENT_VERSION'
+    }
+}
+
+apply plugin: 'edu.illinois.cs.cs125.grade'
+----
+
+This will create a `grade` task with a number of options that are covered below.
+Note that we build a fat JAR with most dependecies included, but jGit insists on
+being signed and so has to be installed separately.
+
+== Example
+
+The grading task is configured through a YAML configuration file that, by
+default, lives in `config/grade.yaml`, although you can change this in the
+`build.gradle` file. Here is an example:
+
+[source,yaml]
+----
+name: "MP1"
+vcs:
+  git: true
+students:
+  location: email.txt
+  require: true
+  suffix: "@illinois.edu"
+files:
+  - "Factorial"
+notes:
+  "Note that the maximum local grade is 90/100. 10 points will be provided
+  during official grading if you have committed code that earns at least 50
+  points by Monday 10/30/2017 at 5PM."
+secure: config/security.policy
+reporting:
+  default: file
+  file: grade.json
+  post: "https://cs125.cs.illinois.edu/grades"
+checkstyle:
+  name: "checkstyle Tests"
+  missing:
+    score: 0
+    message: "checkstyle failed to run"
+    name: "checkstyle"
+  selectors:
+    - selector: "count(//file/error) = 0"
+      score: 10
+      message: "No checkstyle errors were reported"
+      name: "checkstyle"
+    - selector: "count(//file/error) > 0"
+      score: 0
+      message: "checkstyle errors were reported"
+      name: "checkstyle"
+test:
+  name: "testNG Tests"
+  selectors:
+    - selector: "count(//testsuite[@name='FactorialTest']) = 1 and count(//testsuite[@name='FactorialTest']//failure) = 0"
+      score: 30
+      message: "No test failures in FactorialTest"
+      name: "FactorialTest"
+    - selector: "count(//testsuite[@name='FactorialTest']) = 1 and count(//testsuite[@name='FactorialTest']//failure) = 1"
+      score: 20
+      message: "Test failures in FactorialTest"
+      name: "FactorialTest"
+    - selector: "count(//testsuite[@name='FactorialTest']) = 1 and count(//testsuite[@name='FactorialTest']//failure) > 1"
+      score: 10
+      message: "Test failures in FactorialTest"
+      name: "FactorialTest"
+    - selector: "count(//testsuite[@name='FactorialTest']) = 0"
+      score: 0
+      message: "FactorialTest didn't compile"
+      name: "FactorialTest"
+----
+
+Assuming `src/main/java/Factorial.java` contains compiling but incorrect
+student-written code in a Git repository configured to push to GitHub, and
+`src/test/java/FactorialTest.java` contains TestNG test suites, `./gradlew
+grade` could print the following:
+
+----
+> Task :grade
+The TaskInternal.execute() method has been deprecated and is scheduled to be removed in Gradle 5.0. There are better ways to re-use task logic, see https://docs.gradle.org/4.4.1/use
+rguide/custom_tasks.html#sec:reusing_task_logic.
+
+Gradle suite > Gradle test > FactorialTest.testInvalidInputs FAILED
+    java.lang.AssertionError at FactorialTest.java:61
+
+Gradle suite > Gradle test > FactorialTest.testValidInputs FAILED
+    java.lang.AssertionError at FactorialTest.java:48
+
+3 tests completed, 2 failed
+
+	------------------------------------------------------------------------------
+	MP1 Grade Summary
+	------------------------------------------------------------------------------
+	checkstyle                10     No checkstyle errors were reported
+	FactorialTest             10     Test failures in FactorialTest
+	------------------------------------------------------------------------------
+	Total Points              40
+	------------------------------------------------------------------------------
+    Note that the maximum local grade is 90/100. 10 points will be provided during
+    official grading if you have committed code that earns at least 50 points by
+    Monday 10/30/2017 at 5PM.
+	------------------------------------------------------------------------------
+
+BUILD SUCCESSFUL in 9s
+1 actionable task: 1 executed
+----
+
+It could also write the following JSON to `grade.json` and save it either
+locally or post it to an API endpoint:
+
+[source,json]
+----
+{
+  "name": "MP1",
+  "vcs": {
+    "git": {
+      "remotes": {
+        "origin": "https://github.com/student/MP1.git"
+      },
+      "user": {
+        "name": "Zoe Student",
+        "email": "zoe@university.edu"
+      },
+      "head": "2954e8d23ea46fb6e2a0290f3748702c6cd0f240"
+    }
+  },
+  "students": {
+    "location": "email.txt",
+    "require": true,
+    "suffix": "@university.edu",
+    "people": [
+      "zoe@university.edu"
+    ]
+  },
+  "files": [
+    "Winner"
+  ],
+  "secure": "config/security.policy",
+  "reporting": {
+    "default": "file",
+    "post": "https://cs125.cs.illinois.edu/grades",
+    "file": "grade.json",
+    "used": "file"
+  },
+  "checkstyle": {
+    "name": "checkstyle Tests",
+    "selectors": [
+      {
+        "selector": "count(//file/error) = 0",
+        "score": 10,
+        "message": "No checkstyle errors were reported",
+        "name": "checkstyle"
+      }
+    ]
+  },
+  "test": {
+    "name": "testNG Tests",
+    "selectors": [
+      {
+        "selector": "count(//testsuite[@name='FactorialTest']) = 1 and count(//testsuite[@name='FactorialTest']//failure) > 1",
+        "score": 10,
+        "message": "Test failures in FactorialTest",
+        "name": "FactorialTest"
+      }
+    ]
+  },
+  "timestamp": 1515334203546,
+  "totalScore": 40
+}
+----
+
+(Note that I've removed the `testXML` property for succinctness.)
+
+== Configuration
+
+I'll briefly try to document the various configuration properties:
+
+=== `config.name`
+
+Simply copied to the output. Useful for identifying different assignments.
+
+=== `config.vcs`
+
+Configures whether the plugin will attempt to extract information about the
+student's repository. Currently `git` is the only supported option. If set to
+true, information similar to what is printed above will be displayed, including
+configured remotes, user information, and the current head commit.
+
+We could add more here. However, this information isn't necessarily that useful
+for identifying students, since they may not set their email to their university
+address, and it may be hard to identify them based on their repository URL.
+
+=== `config.students`
+
+Configures whether identifying information is required in project before the
+autograder will run, where it lives and formatting details.
+
+Using the information collected by this plugin requires being able to identify
+students. A straightforward way to do this is to have them create (or edit) a
+file in the project and add their university email address. If
+`config.students.require` is set to true, this information is required before
+the autograder will work. That's probably a pretty good incentive.
+
+`config.students.location` specifies the path (relative to the project root)
+that we load to find their email address. Right now we support text files with
+one student email address per line. Email addresses are checked for validity
+and, if `config.students.suffix` is set, we also check that they have the right
+hostname. This is intended to prevent students from adding Gmail addresses, or
+other email addresses that don't double as campus identifiers.
+
+=== `config.files`
+
+Specifies which files to compile.
+
+Yes: you could just depend on the normal Gradle Java compilation task. But,
+unfortunately, it fails the entire build if _anything_ fails to compile. Do you
+want to give partial credit? Then we need this so that we can generate
+individual compilation tasks that don't all depend on each other.
+
+This is also what generates the current deprecation warning. I don't really know
+how to fix this for Gradle 5.0, but the right thing might be to just ditch
+Gradle entirely. It's proven a lot more troublesome to work with than I had
+expected.
+
+If a list of files is provided, the grader assumes that `File.java` is tested by
+`FileTest.java`. If that is not true, or if there is not a one-to-one
+relationship between your main and test files, you can use a different syntax:
+
+[source,yaml]
+----
+files:
+  - compile:
+    - "ConnectN.java"
+    - "Player.java"
+    test: ConnectN
+----
+
+This specifies which files to compile and the root of the test file, which is
+then appended with `Test`. So this would compile `ConnectNTest.java` and run the
+test suites that it contains. So I guess you do have to have test files that end
+with `Test`. Sorry.
+
+=== `config.notes`
+
+Grading notes that are printed after the scoring output. We use these in cases
+where the autograder can't calculate all of the student's points, as in the
+example above.
+
+=== `config.secure`
+
+A security policy used during secure grading, which can be enabled with the
+`-Pgrade.secure` flag described below.
+
+=== `canfig.reporting`
+
+The grading plugin can return results in two ways: either by saving them to a
+local file, or by posting them to a remote endpoint. The former is great for
+secure official grading, the latter for tracking student progress remotely and
+in-between commits.
+
+`config.reporting.file` specifies the file location as a relative path.
+`config.reporting.post` specifies the remote API endpoint. If only one is
+specified, it will be used as the default. Or you can set
+`config.reporting.default` to either `file` or `post`. If you want to disable
+reporting, just omit this section entirely.
+
+These values can also be overridden using command line options, as described
+below.
+
+=== `canfig.checkstyle`
+
+This is the first of the grading sections. Both it and the `testng` section
+described below have a similar format. At this point the name property isn't
+used, but it could be used as a header in the output provided to students.
+`missing` describes what to do if this information is missing during the build,
+which would indicate that `checkstyle` crashed (this can happen).
+
+The `selectors` property is the most important. The grading plugin takes the XML
+produced by the `checkstyle` run and applies each `selector` to it in turn. If
+the query matches, that selector is preserved in the output, shown to students,
+and used in the total score calculation. More about selectors below.
+
+Note that the grading plugin just runs the `checkstyle` task, but it doesn't
+configure it. That's up to you in your `build.gradle`. Here's an example:
+
+[source,groovy]
+----
+apply plugin: 'checkstyle'
+...
+checkstyle {
+    toolVersion "8.7"
+}
+----
+
+=== `config.test`
+
+Selectors for processing TestNG output. Note that the grading plugin takes _all_
+TestNG output and combines it into a single XML file to simplify applying
+selectors. The single file has a `<testsuites>` tag that all `<testsuite>`
+results are added to.
+
+Similar to the `checkstyle` section above, all matching selectors are preserved
+in the output.
+
+At present this plugin is only used with TestNG, but I believe that JUnit also
+generates similar XML and could probably be used as well. Maybe with a bit of
+fiddling footnote:[Everything involving Gradle requires fiddling.].
+
+== Writing Selectors
+
+A large part of using this plugin properly comes down to writing good XPath
+selectors for the `checkstyle` and `test` components footnote:[Yes, XPath is
+awful, but everything from the Java era seems to love to generate XML. So what
+are you going to do?].
+
+Testing your selectors is probably the most important piece of advice. But also
+keep in mind that you probably have groups of selectors where only one should
+match. We could probably support this better in a future version of this plugin,
+but for now it's up to you to ensure that given a group of N selectors, _one and
+only one_ matches any given output. Test your selectors carefully, and expect to
+have to add a lot of duplicative conditional logic.
+
+[[command]]
+== Command Line Options
+
+Our grading plugin reads several properties from the global Gradle properties
+object, all prefixed with `grade`.
+
+[[command-capture]]
+=== `-Pgrade.capture`: Capture Grading Output
+
+Enables the collection of all testing output that would normally be printed to
+the display. Actually, it's also printed, and a wraparound tool can probably do
+a better job of collecting it and separating standard output and error---but
+this is here if you want it. Output ends up as the `output` property on the
+output JSON object.
+
+[[command-secure]]
+=== `-Pgrade.secure`: Enable Secure Grading
+
+If this is set, the JVM will be configured to use the security policy that you
+specify in your configuration file (`config.secure`) when tests are run.
+
+I _strongly_ suggest using the excellent
+https://github.com/pro-grade/pro-grade[pro-grade] library to write your security
+policies. That allows you to use deny syntax, which simplifies
+highly-restrictive policies. To use pro-grade, you need the following in your
+`build.gradle`:
+
+[source,groovy]
+----
+dependencies {
+    testRuntime 'net.sourceforge.pro-grade:pro-grade:1.1.1'
+}
+----
+
+Then you can write policies like this one. This is a good example of a
+highly-restrictive policy for safe grading of untrusted student code, which
+provides only access to files in the resources directory:
+
+[source]
+----
+priority "grant";
+// From https://github.com/pro-grade/pro-grade/issues/31
+deny codeBase "file:${main.sources}/-" {
+  permission java.io.FilePermission "<<ALL FILES>>", "read, write, execute";
+  permission java.net.NetPermission "*";
+  permission java.lang.RuntimePermission "createClassLoader";
+  permission java.lang.RuntimePermission "accessClassInPackage.sun";
+  permission java.lang.RuntimePermission "setSecurityManager";
+  permission java.lang.reflect.ReflectPermission "suppressAccessChecks";
+  permission java.security.SecurityPermission "setPolicy";
+  permission java.security.SecurityPermission "setProperty.package.access";
+};
+grant codeBase "file:${main.sources}/-" {
+  permission java.io.FilePermission "${main.resources}/-", "read";
+};
+----
+
+If you see error messages like this during secure grading:
+
+[source]
+----
+Policy policy.url.2=file:/Users/challen/.java.policy wasn't successfully parsed.
+Exception message: /Users/challen/.java.policy (No such file or directory)
+----
+
+just create an empty file in the requested location and they'll go away.
+
+=== `-Pgrade.reporting`: Change Reporting Options
+
+We use the grading plugin both to enable continuous local student-facing
+autograding, and during official grading. In the first case, we want to push the
+results to an API endpoint. In the latter, we want to save them locally. So the
+plugin has command-line options to change the reporting location.
+
+If `-Pgrade.reporting` is set, it will change the default reporting location to
+either `post` or `file`. If `-Pgrade.reporting.file` is set, it both sets the
+location of the output file _and_ sets reporting to the file option.
+
+=== Example Secure Official Command Line Options
+
+As stated above, we use this plugin both to provide students with a local
+autograder and during official grading. During official grading, we both want to
+secure the testing environment and generate structured data, which is then
+processed further by driver scripts and eventually lands in a database.
+
+To simplify things, the default configuration is set up for local autograding:
+security is disabled, and results are reporting to our API endpoint. That allows
+us to create a run configuration in IntelliJ that just runs the `grade` task and
+does the right thing without further configuration.
+
+During secure grading we use the command line options as follows to set up
+things properly:
+
+[source,bash]
+----
+$ ./gradlew -Pgrade.capture -Pgrade.secure -Pgrade.reporting.file=../grade.json
+----
+
+You could store the grading output in the same directory, but we export student
+code into a subdirectory of a temporary directory and so save it one level up.
+
+== Possible TODOs
+
+* Better student email address validation, perhaps checking against a remote API
+to ensure that they are in fact in the class. At least a small fraction of the
+class will not type their email address correctly, causing confusion and
+problems.
+* Work around Windows firewall issues. I have seen the plugin be blocked, at
+which point we don't get any data. Not sure how to distinguish this from the
+case when we're just offline, since we do want students to be able to work
+without internet access.

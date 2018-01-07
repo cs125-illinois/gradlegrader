@@ -77,10 +77,12 @@ class GradeTask extends DefaultTask {
      */
     GradeTask() {
         /*
-         * Ensure that checkstyle doesn't fail the entire build, and always get rerun.
+         * Ensure that checkstyle doesn't fail the entire build, and always get rerun so that we can grab its output.
          */
-        project.tasks.checkstyleMain.setIgnoreFailures(true)
-        project.tasks.checkstyleMain.outputs.upToDateWhen { false }
+        if (project.tasks.hasProperty('checkstyleMain')) {
+            project.tasks.checkstyleMain.setIgnoreFailures(true)
+            project.tasks.checkstyleMain.outputs.upToDateWhen { false }
+        }
     }
 
     /**
@@ -94,6 +96,10 @@ class GradeTask extends DefaultTask {
          */
         def yaml = new Yaml()
         def gradeConfiguration = yaml.load(project.file(gradeConfigurationPath.get()).text)
+
+        if (gradeConfiguration.checkstyle && !project.tasks.hasProperty('checkstyleMain')) {
+            throw new GradleException("checkstyle is configured for grading but not in build.gradle")
+        }
 
         /*
          * If configured, try to extract some information about their repository.
@@ -178,13 +184,17 @@ class GradeTask extends DefaultTask {
         def taskOutput = ''
         def listener = { taskOutput += it } as StandardOutputListener
         [project.tasks.clean,
-            project.tasks.checkstyleMain,
             project.tasks.processResources,
             project.tasks.processTestResources].each { task ->
             addListener(task, listener)
         }
+        if (gradeConfiguration.checkstyle) {
+            addListener(project.tasks.checkstyleMain, listener)
+        }
         project.tasks.clean.execute()
-        project.tasks.checkstyleMain.execute()
+        if (gradeConfiguration.checkstyle) {
+            project.tasks.checkstyleMain.execute()
+        }
         def mainResourcesDir = project.tasks.processResources.getDestinationDir()
         project.tasks.processResources.execute()
         project.tasks.processTestResources.execute()
