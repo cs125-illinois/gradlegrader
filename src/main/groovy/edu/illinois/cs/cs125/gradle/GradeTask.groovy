@@ -130,35 +130,48 @@ class GradeTask extends DefaultTask {
             }
         }
         if (gradeConfiguration.students) {
+            def location = gradeConfiguration.students.location
             def emails = []
             try {
-                emails = new File(gradeConfiguration.students.location).text.trim().split("\n")
+                def emailString = new File(location).text.trim()
+                if (emailString.length() == 0) {
+                    throw new Exception()
+                }
+                emails = emailString.split("\n")
+                if (emails.length == 0) {
+                    throw new Exception()
+                }
             } catch (Exception e) {
                 if (gradeConfiguration.students.require) {
-                    System.err << "FAILURE: Before running the autograder, please add your email address to " + gradeConfiguration.students.location
-                    throw new GradleException("missing email address")
+                    System.err.println "FAILURE: Before running the autograder, please add your email address to " +
+                            location + "."
+                    throw new GradleException("missing email address: please fix " + location)
                 }
             }
             if (gradeConfiguration.students.require) {
                 try {
                     emails.each { email ->
                         if (!EmailValidator.getInstance().isValid(email)) {
-                            System.err << "FAILURE: " + email + " is not a valid email address"
+                            System.err.println "FAILURE: " + email +
+                                    " is not a valid email address. Please fix " + location + "."
                             throw new GradleException("invalid email address")
                         }
                         if (gradeConfiguration.students.suffix) {
                             def emailParts = email.split("@")
                             if (!(emailParts[0] + gradeConfiguration.students.suffix).equals(email)) {
-                                System.err << "FAILURE: " + email + " is not an " + gradeConfiguration.students.suffix + " email address"
-                                throw new GradleException("incorrect email address")
+                                System.err.println "FAILURE: " + email + " is not an " +
+                                        gradeConfiguration.students.suffix + " email address. " +
+                                        "Please fix " + location + "."
+                                throw new GradleException("incorrect email address: please fix " + location)
                             }
                         }
                     }
                 } catch (GradleException e) {
                     throw (e)
                 } catch (Exception e) {
-                    System.err << "FAILURE: failure validating email addresses " + e
-                    throw new GradleException("email validation failure")
+                    System.err << "FAILURE: failure validating email addresses " + e +
+                            ". Please fix " + location + "."
+                    throw new GradleException("email validation failure: please fix " + location)
                 }
                 gradeConfiguration.students.people = emails
             }
