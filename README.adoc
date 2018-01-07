@@ -1,8 +1,11 @@
-= Gradle Grading Plugin
+image::https://cs125.cs.illinois.edu/img/logos/cs125-with-border-120x120.png[CS 125 Logo, align="center", link="https://github.com/cs125-illinois"]
+
+= https://cs125.cs.illinois.edu/[CS 125] Gradle Grading Plugin
 
 This Gradle plugin attempts to enable local autograding for Java-based
 assignments. This is non-trivial to accomplish, mainly because of the way that
-Gradle works. But this is a decent attempt.
+Gradle works. But this is a decent attempt. It should work for other Java-based
+assignments.
 
 == Features
 
