@@ -1,4 +1,10 @@
-image::https://cs125.cs.illinois.edu/img/logos/cs125-with-border-120x120.png[CS 125 Logo, align="center", link="https://github.com/cs125-illinois"]
+++++
+<div align="center">
+  <a href="https://github.com/cs125-illinois">
+    <img src="https://cs125.cs.illinois.edu/img/logos/cs125-with-border-120x120.png" alt="CS 125 Logo" data-canonical-src="https://cs125.cs.illinois.edu/img/logos/cs125-with-border-120x120.png" style="max-width:100%;">
+  </a>
+</div>
+++++
 
 = https://cs125.cs.illinois.edu/[CS 125] Gradle Grading Plugin
 
