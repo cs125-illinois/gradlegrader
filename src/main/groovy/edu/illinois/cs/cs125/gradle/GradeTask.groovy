@@ -148,6 +148,10 @@ class GradeTask extends DefaultTask {
             }
             if (gradeConfiguration.students.require) {
                 try {
+                    if (gradeConfiguration.students.count && emails.length != gradeConfiguration.students.count) {
+                        throw new GradleException("wrong email count: should only have " +
+                                gradeConfiguration.students.count + " email")
+                    }
                     emails.each { email ->
                         if (!EmailValidator.getInstance().isValid(email)) {
                             System.err.println "FAILURE: " + email +
