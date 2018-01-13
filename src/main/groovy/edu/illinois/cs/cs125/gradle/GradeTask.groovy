@@ -340,8 +340,8 @@ class GradeTask extends DefaultTask {
          * Complete adding information to the output object.
          */
         def totalScore = 0
-        gradeConfiguration.each{ unused, v ->
-            if (v instanceof Map && v.containsKey('selectors')) {
+        gradeConfiguration.each{ key, v ->
+            if (key != 'scoring' && v instanceof Map && v.containsKey('selectors')) {
                 v.selectors.each{ selector ->
                     totalScore += selector.score
                 }
@@ -356,8 +356,8 @@ class GradeTask extends DefaultTask {
         println "".padRight(78, "-")
         println gradeConfiguration.name + " Grade Summary"
         println "".padRight(78, "-")
-        gradeConfiguration.each{ unused, v ->
-            if (v instanceof Map && v.containsKey('selectors')) {
+        gradeConfiguration.each{ key, v ->
+            if (key != 'scoring' && v instanceof Map && v.containsKey('selectors')) {
                 v.selectors.each{ selector ->
                     print selector.name.padRight(20)
                     print selector.score.toString().padLeft(8)
