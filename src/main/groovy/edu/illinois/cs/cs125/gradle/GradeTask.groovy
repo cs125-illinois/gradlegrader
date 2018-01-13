@@ -125,9 +125,7 @@ class GradeTask extends DefaultTask {
                         head: gitRepository.resolve(Constants.HEAD).name
                 ]
 
-            } catch (Exception e) {
-                println e
-            }
+            } catch (Exception e) { }
         }
         if (gradeConfiguration.students) {
             def location = gradeConfiguration.students.location
