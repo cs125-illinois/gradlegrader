@@ -245,11 +245,23 @@ class GradeTask extends DefaultTask {
         }
         project.tasks.clean.execute()
         if (gradeConfiguration.checkstyle) {
-            project.tasks.checkstyleMain.execute()
+            try {
+                project.tasks.checkstyleMain.execute()
+            } catch (Exception e) {
+                gradeConfiguration.checkstyleFailed = true
+                reportConfiguration(gradeConfiguration)
+                throw (e)
+            }
         }
         def mainResourcesDir = project.tasks.processResources.getDestinationDir()
-        project.tasks.processResources.execute()
-        project.tasks.processTestResources.execute()
+        try {
+            project.tasks.processResources.execute()
+            project.tasks.processTestResources.execute()
+        } catch (Exception e) {
+            gradeConfiguration.resourcesFailed = true
+            reportConfiguration(gradeConfiguration)
+            throw (e)
+        }
 
         /*
          * We want to ignore errors in this block because we want to continue even if
