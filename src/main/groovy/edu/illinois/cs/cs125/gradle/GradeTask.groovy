@@ -72,6 +72,27 @@ class GradeTask extends DefaultTask {
             task.logging.removeStandardErrorListener(listener)
         }
     }
+
+    def reportConfiguration(gradeConfiguration) {
+        if (gradeConfiguration.reporting) {
+            if (gradeConfiguration.reporting.used == "post") {
+                def gradePost = new HttpPost(gradeConfiguration.reporting.post)
+                gradePost.addHeader("content-type", "application/json")
+                gradePost.setEntity(new StringEntity(JsonOutput.toJson(gradeConfiguration)))
+
+                def client = HttpClientBuilder.create().build()
+                try {
+                    def response = client.execute(gradePost)
+                } catch (Exception e) { }
+            } else if (gradeConfiguration.reporting.used == "file") {
+                def filename = project.findProperty("grade.reporting.file") ?: gradeConfiguration.reporting.file;
+                def file = new File(filename.toString())
+                def writer = file.newWriter()
+                writer << JsonOutput.toJson(gradeConfiguration);
+                writer.close();
+            }
+        }
+    }
     /**
      * Create a new grade task.
      */
@@ -97,6 +118,31 @@ class GradeTask extends DefaultTask {
         def yaml = new Yaml()
         def gradeConfiguration = yaml.load(project.file(gradeConfigurationPath.get()).text)
 
+        /*
+         * Determine where to write output.
+         */
+        if (gradeConfiguration.reporting) {
+            def destination
+            if (project.hasProperty("grade.reporting")) {
+                destination = project.findProperty("grade.reporting")
+            } else if (project.hasProperty("grade.reporting.file")) {
+                destination = "file";
+                gradeConfiguration.reporting.file = project.findProperty("grade.reporting.file")
+            } else {
+                if (gradeConfiguration.reporting.size() == 1) {
+                    destination = gradeConfiguration.reporting.keySet().toArray()[0];
+                } else {
+                    destination = gradeConfiguration.reporting.default;
+                }
+            }
+            assert destination
+            assert gradeConfiguration.reporting[destination]
+            gradeConfiguration.reporting.used = destination
+        }
+
+        /*
+         * Make sure checkstyle is set up properly.
+         */
         if (gradeConfiguration.checkstyle && !project.tasks.hasProperty('checkstyleMain')) {
             throw new GradleException("checkstyle is configured for grading but not in build.gradle")
         }
@@ -143,6 +189,8 @@ class GradeTask extends DefaultTask {
                 if (gradeConfiguration.students.require) {
                     System.err.println "FAILURE: Before running the autograder, please add your email address to " +
                             location + "."
+                    gradeConfiguration.missingEmail = true
+                    reportConfiguration(gradeConfiguration)
                     throw new GradleException("missing email address: please fix " + location)
                 }
             }
@@ -169,10 +217,14 @@ class GradeTask extends DefaultTask {
                         }
                     }
                 } catch (GradleException e) {
+                    gradeConfiguration.badEmail = true
+                    reportConfiguration(gradeConfiguration)
                     throw (e)
                 } catch (Exception e) {
                     System.err << "FAILURE: failure validating email addresses " + e +
                             ". Please fix " + location + "."
+                    gradeConfiguration.badEmail = true
+                    reportConfiguration(gradeConfiguration)
                     throw new GradleException("email validation failure: please fix " + location)
                 }
                 gradeConfiguration.students.people = emails
@@ -180,22 +232,7 @@ class GradeTask extends DefaultTask {
         }
         gradeConfiguration.timestamp = System.currentTimeMillis()
 
-        def destination;
-        if (gradeConfiguration.reporting) {
-            if (project.hasProperty("grade.reporting")) {
-                destination = project.findProperty("grade.reporting")
-            } else if (project.hasProperty("grade.reporting.file")) {
-                destination = "file";
-                gradeConfiguration.reporting.file = project.findProperty("grade.reporting.file")
-            } else {
-                if (gradeConfiguration.reporting.size() == 1) {
-                    destination = gradeConfiguration.reporting.keySet().toArray()[0];
-                } else {
-                    destination = gradeConfiguration.reporting.default;
-                }
-            }
-            assert gradeConfiguration.reporting[destination]
-        }
+
         def taskOutput = ''
         def listener = { taskOutput += it } as StandardOutputListener
         [project.tasks.clean,
@@ -377,24 +414,6 @@ class GradeTask extends DefaultTask {
             println "".padRight(78, "-")
         }
 
-        if (gradeConfiguration.reporting) {
-            gradeConfiguration.reporting.used = destination
-            if (destination == "post") {
-                def gradePost = new HttpPost(gradeConfiguration.reporting.post)
-                gradePost.addHeader("content-type", "application/json")
-                gradePost.setEntity(new StringEntity(JsonOutput.toJson(gradeConfiguration)))
-
-                def client = HttpClientBuilder.create().build()
-                try {
-                    def response = client.execute(gradePost)
-                } catch (Exception e) { }
-            } else if (destination == "file") {
-                def filename = project.findProperty("grade.reporting.file") ?: gradeConfiguration.reporting.file;
-                def file = new File(filename.toString())
-                def writer = file.newWriter()
-                writer << JsonOutput.toJson(gradeConfiguration);
-                writer.close();
-            }
-        }
+        reportConfiguration(gradeConfiguration)
     }
 }
