@@ -295,7 +295,7 @@ example above.
 A security policy used during secure grading, which can be enabled with the
 `-Pgrade.secure` flag described below.
 
-=== `canfig.reporting`
+=== `config.reporting`
 
 The grading plugin can return results in two ways: either by saving them to a
 local file, or by posting them to a remote endpoint. The former is great for
@@ -311,7 +311,7 @@ reporting, just omit this section entirely.
 These values can also be overridden using command line options, as described
 below.
 
-=== `canfig.checkstyle`
+=== `config.checkstyle`
 
 This is the first of the grading sections. Both it and the `testng` section
 described below have a similar format. At this point the name property isn't
