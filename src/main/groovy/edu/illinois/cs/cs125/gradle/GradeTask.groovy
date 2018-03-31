@@ -85,11 +85,11 @@ class GradeTask extends DefaultTask {
                     def response = client.execute(gradePost)
                 } catch (Exception e) { }
             } else if (gradeConfiguration.reporting.used == "file") {
-                def filename = project.findProperty("grade.reporting.file") ?: gradeConfiguration.reporting.file;
+                def filename = project.findProperty("grade.reporting.file") ?: gradeConfiguration.reporting.file
                 def file = new File(filename.toString())
                 def writer = file.newWriter()
-                writer << JsonOutput.toJson(gradeConfiguration);
-                writer.close();
+                writer << JsonOutput.toJson(gradeConfiguration)
+                writer.close()
             }
         }
     }
@@ -126,13 +126,13 @@ class GradeTask extends DefaultTask {
             if (project.hasProperty("grade.reporting")) {
                 destination = project.findProperty("grade.reporting")
             } else if (project.hasProperty("grade.reporting.file")) {
-                destination = "file";
+                destination = "file"
                 gradeConfiguration.reporting.file = project.findProperty("grade.reporting.file")
             } else {
                 if (gradeConfiguration.reporting.size() == 1) {
-                    destination = gradeConfiguration.reporting.keySet().toArray()[0];
+                    destination = gradeConfiguration.reporting.keySet().toArray()[0]
                 } else {
-                    destination = gradeConfiguration.reporting.default;
+                    destination = gradeConfiguration.reporting.default
                 }
             }
             assert destination
@@ -295,7 +295,9 @@ class GradeTask extends DefaultTask {
                 }
                 addListener(compileTask, listener)
                 compileTask.execute()
-            } catch (Exception e) {}
+            } catch (Exception e) {
+                return
+            }
             try {
                 def testCompileTask = project.tasks.create(name: "compileTest" + name, type: JavaCompile) {
                     source = project.sourceSets.test.java.srcDirs
@@ -305,16 +307,23 @@ class GradeTask extends DefaultTask {
                 }
                 addListener(testCompileTask, listener)
                 testCompileTask.execute()
-            } catch (Exception e) {}
+            } catch (Exception e) {
+                return
+            }
             try {
+                def showStreams = false
+                if (gradeConfiguration.showStreams) {
+                    showStreams = true
+                }
                 def testTask = project.tasks.create(name: "test" + name, type: Test, dependsOn: 'compileTest' + name) {
                     useTestNG() { useDefaultListeners = true }
+                    testLogging.showStandardStreams = showStreams
                     reports.html.enabled = false
                     include "**" + test + "**"
                 }
                 addListener(testTask, listener)
                 if (project.hasProperty("grade.secure") && gradeConfiguration.secure) {
-                    gradeConfiguration.secureRun = true;
+                    gradeConfiguration.secureRun = true
                     testTask.jvmArgs("-Djava.security.manager=net.sourceforge.prograde.sm.ProGradeJSM")
                     testTask.jvmArgs("-Djava.security.policy=" + gradeConfiguration.secure)
                     testTask.systemProperties(["main.sources": project.sourceSets.main.java.outputDir])
