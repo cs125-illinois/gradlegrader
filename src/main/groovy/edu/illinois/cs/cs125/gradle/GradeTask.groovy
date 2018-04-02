@@ -273,6 +273,10 @@ class GradeTask extends DefaultTask {
          */
 
         def testOutputDirectories = []
+        def packagePath = ""
+        if (gradeConfiguration.package) {
+            packagePath = gradeConfiguration.package.replace(".", File.separator)
+        }
         gradeConfiguration.files.each{info ->
             def compile, testCompile, test, name
             try {
@@ -287,8 +291,12 @@ class GradeTask extends DefaultTask {
                 name = info
             }
             try {
+                def sources = project.sourceSets.main.java.srcDirs
+                if (gradeConfiguration.package) {
+                    sources = sources.collect { new File(it, packagePath ) }
+                }
                 def compileTask = project.tasks.create(name: "compile" + name, type: JavaCompile) {
-                    source = project.sourceSets.main.java.srcDirs
+                    source = sources
                     include compile
                     classpath = project.sourceSets.main.compileClasspath
                     destinationDir = project.sourceSets.main.java.outputDir
@@ -298,9 +306,14 @@ class GradeTask extends DefaultTask {
             } catch (Exception e) {
                 return
             }
+
             try {
+                def sources = project.sourceSets.test.java.srcDirs
+                if (gradeConfiguration.package) {
+                    sources = sources.collect { new File(it, packagePath ) }
+                }
                 def testCompileTask = project.tasks.create(name: "compileTest" + name, type: JavaCompile) {
-                    source = project.sourceSets.test.java.srcDirs
+                    source = sources
                     include testCompile
                     classpath = project.sourceSets.test.compileClasspath
                     destinationDir = project.sourceSets.test.java.outputDir
@@ -310,6 +323,7 @@ class GradeTask extends DefaultTask {
             } catch (Exception e) {
                 return
             }
+
             try {
                 def showStreams = false
                 if (gradeConfiguration.showStreams) {
@@ -319,7 +333,7 @@ class GradeTask extends DefaultTask {
                     useTestNG() { useDefaultListeners = true }
                     testLogging.showStandardStreams = showStreams
                     reports.html.enabled = false
-                    include "**" + test + "**"
+                    include "**" + packagePath + test + "**"
                 }
                 addListener(testTask, listener)
                 if (project.hasProperty("grade.secure") && gradeConfiguration.secure) {
