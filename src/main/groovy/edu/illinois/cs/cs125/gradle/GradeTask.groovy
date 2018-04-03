@@ -333,7 +333,7 @@ class GradeTask extends DefaultTask {
                     useTestNG() { useDefaultListeners = true }
                     testLogging.showStandardStreams = showStreams
                     reports.html.enabled = false
-                    include "**" + packagePath + test + "**"
+                    include "**" + packagePath + File.separator + test + "**"
                 }
                 addListener(testTask, listener)
                 if (project.hasProperty("grade.secure") && gradeConfiguration.secure) {
