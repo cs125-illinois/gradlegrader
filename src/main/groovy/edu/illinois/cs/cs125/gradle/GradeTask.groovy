@@ -1,40 +1,29 @@
 package edu.illinois.cs.cs125.gradle
 
+import groovy.json.JsonOutput
+import groovy.xml.DOMBuilder
+import groovy.xml.XmlUtil
+import groovy.xml.dom.DOMCategory
 import org.apache.commons.validator.routines.EmailValidator
+import org.apache.http.client.methods.HttpPost
+import org.apache.http.entity.StringEntity
+import org.apache.http.impl.client.HttpClientBuilder
 import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
-import org.gradle.api.provider.PropertyState
+import org.gradle.api.logging.StandardOutputListener
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
-import org.gradle.api.tasks.compile.JavaCompile
-import org.gradle.api.tasks.testing.Test
-import org.gradle.api.logging.StandardOutputListener
 
-import org.yaml.snakeyaml.Yaml
-import groovy.json.*
-
-import static javax.xml.xpath.XPathConstants.*
-
-import groovy.xml.DOMBuilder
-import groovy.xml.XmlUtil
-import groovy.xml.dom.DOMCategory
-
-import org.apache.http.client.methods.*
-import org.apache.http.entity.*
-import org.apache.http.impl.client.*
+import static javax.xml.xpath.XPathConstants.BOOLEAN
 
 /**
  * Class implementing our Gradle grade task.
  */
 class GradeTask extends DefaultTask {
 
-    @Internal
-    final PropertyState<String> gradeConfigurationPath = project.property(String)
-
-    @Internal
-    final PropertyState<String> studentsConfigurationPath = project.property(String)
+    @Internal String taskOutput = ''
 
     /**
      * Open an XML file given a path.
@@ -42,11 +31,11 @@ class GradeTask extends DefaultTask {
      * @param path to the file to open.
      * @return a DOM object representing the data in the file.
      */
-    def openXML(path) {
+    def static openXML(path) {
         return DOMBuilder.parse(new StringReader(path.text), false, false).documentElement
     }
 
-    def fill(text, width=78, prefix='') {
+    def static fill(text, width=78, prefix='') {
         width = width - prefix.size()
         def out = []
         List words = text.replaceAll("\n", " ").split(" ")
@@ -63,27 +52,17 @@ class GradeTask extends DefaultTask {
         out.join("\n")
     }
 
-    def addListener(task, listener) {
-        task.logging.addStandardErrorListener(listener)
-        task.logging.addStandardOutputListener(listener)
-
-        task.doLast {
-            task.logging.removeStandardOutputListener(listener)
-            task.logging.removeStandardErrorListener(listener)
-        }
-    }
-
     def reportConfiguration(gradeConfiguration) {
         if (gradeConfiguration.reporting) {
             if (gradeConfiguration.reporting.used == "post") {
-                def gradePost = new HttpPost(gradeConfiguration.reporting.post)
+                def gradePost = new HttpPost((String) gradeConfiguration.reporting.post)
                 gradePost.addHeader("content-type", "application/json")
                 gradePost.setEntity(new StringEntity(JsonOutput.toJson(gradeConfiguration)))
 
                 def client = HttpClientBuilder.create().build()
                 try {
-                    def response = client.execute(gradePost)
-                } catch (Exception e) { }
+                    client.execute(gradePost)
+                } catch (Exception ignored) { }
             } else if (gradeConfiguration.reporting.used == "file") {
                 def filename = project.findProperty("grade.reporting.file") ?: gradeConfiguration.reporting.file
                 def file = new File(filename.toString())
@@ -93,30 +72,28 @@ class GradeTask extends DefaultTask {
             }
         }
     }
-    /**
-     * Create a new grade task.
-     */
-    GradeTask() {
-        /*
-         * Ensure that checkstyle doesn't fail the entire build, and always get rerun so that we can grab its output.
-         */
-        if (project.tasks.hasProperty('checkstyleMain')) {
-            project.tasks.checkstyleMain.setIgnoreFailures(true)
-            project.tasks.checkstyleMain.outputs.upToDateWhen { false }
+
+    def addListener(task) {
+        task.logging.addStandardErrorListener(listener)
+        task.logging.addStandardOutputListener(listener)
+
+        task.doLast {
+            task.logging.removeStandardOutputListener(listener)
+            task.logging.removeStandardErrorListener(listener)
         }
     }
+
+    def listener = { taskOutput += it } as StandardOutputListener
 
     /**
      * Grade an assignment.
      */
     @TaskAction
+    @SuppressWarnings("unused")
     def gradeAssignment() {
 
-        /*
-         * Load the configuration file.
-         */
-        def yaml = new Yaml()
-        def gradeConfiguration = yaml.load(project.file(gradeConfigurationPath.get()).text)
+        def gradeConfiguration = project.gradeConfiguration
+        assert gradeConfiguration
 
         /*
          * Determine where to write output.
@@ -138,13 +115,6 @@ class GradeTask extends DefaultTask {
             assert destination
             assert gradeConfiguration.reporting[destination]
             gradeConfiguration.reporting.used = destination
-        }
-
-        /*
-         * Make sure checkstyle is set up properly.
-         */
-        if (gradeConfiguration.checkstyle && !project.tasks.hasProperty('checkstyleMain')) {
-            throw new GradleException("checkstyle is configured for grading but not in build.gradle")
         }
 
         /*
@@ -232,122 +202,6 @@ class GradeTask extends DefaultTask {
         }
         gradeConfiguration.timestamp = System.currentTimeMillis()
 
-
-        def taskOutput = ''
-        def listener = { taskOutput += it } as StandardOutputListener
-        [project.tasks.clean,
-            project.tasks.processResources,
-            project.tasks.processTestResources].each { task ->
-            addListener(task, listener)
-        }
-        if (gradeConfiguration.checkstyle) {
-            addListener(project.tasks.checkstyleMain, listener)
-        }
-        project.tasks.clean.execute()
-        if (gradeConfiguration.checkstyle) {
-            try {
-                project.tasks.checkstyleMain.execute()
-            } catch (Exception e) {
-                gradeConfiguration.checkstyleFailed = true
-                reportConfiguration(gradeConfiguration)
-                throw (e)
-            }
-        }
-        def mainResourcesDir = project.tasks.processResources.getDestinationDir()
-        try {
-            project.tasks.processResources.execute()
-            project.tasks.processTestResources.execute()
-        } catch (Exception e) {
-            gradeConfiguration.resourcesFailed = true
-            reportConfiguration(gradeConfiguration)
-            throw (e)
-        }
-
-        /*
-         * We want to ignore errors in this block because we want to continue even if
-         * compiling or testing fails.
-         *
-         * Note that the idea of executing tests is usually a no-no in Gradle.
-         * But we have to do this if we want to give students partial credit,
-         * since otherwise a single compilation failure will fail the entire build.
-         */
-
-        def testOutputDirectories = []
-        def packagePath = ""
-        if (gradeConfiguration.package) {
-            packagePath = gradeConfiguration.package.replace(".", File.separator)
-        }
-        gradeConfiguration.files.each{info ->
-            def compile, testCompile, test, name
-            try {
-                compile = info.compile
-                testCompile = info.test + "Test.java"
-                test = info.test + "Test"
-                name = info.test
-            } catch (Exception e) {
-                compile = info + ".java"
-                testCompile = info + "Test.java"
-                test = info + "Test"
-                name = info
-            }
-            try {
-                def sources = project.sourceSets.main.java.srcDirs
-                if (gradeConfiguration.package) {
-                    sources = sources.collect { new File(it, packagePath ) }
-                }
-                def compileTask = project.tasks.create(name: "compile" + name, type: JavaCompile) {
-                    source = sources
-                    include compile
-                    classpath = project.sourceSets.main.compileClasspath
-                    destinationDir = project.sourceSets.main.java.outputDir
-                }
-                addListener(compileTask, listener)
-                compileTask.execute()
-            } catch (Exception e) {
-                return
-            }
-
-            try {
-                def sources = project.sourceSets.test.java.srcDirs
-                if (gradeConfiguration.package) {
-                    sources = sources.collect { new File(it, packagePath ) }
-                }
-                def testCompileTask = project.tasks.create(name: "compileTest" + name, type: JavaCompile) {
-                    source = sources
-                    include testCompile
-                    classpath = project.sourceSets.test.compileClasspath
-                    destinationDir = project.sourceSets.test.java.outputDir
-                }
-                addListener(testCompileTask, listener)
-                testCompileTask.execute()
-            } catch (Exception e) {
-                return
-            }
-
-            try {
-                def showStreams = false
-                if (gradeConfiguration.showStreams) {
-                    showStreams = true
-                }
-                def testTask = project.tasks.create(name: "test" + name, type: Test, dependsOn: 'compileTest' + name) {
-                    useTestNG() { useDefaultListeners = true }
-                    testLogging.showStandardStreams = showStreams
-                    reports.html.enabled = false
-                    include "**" + packagePath + File.separator + test + "**"
-                }
-                addListener(testTask, listener)
-                if (project.hasProperty("grade.secure") && gradeConfiguration.secure) {
-                    gradeConfiguration.secureRun = true
-                    testTask.jvmArgs("-Djava.security.manager=net.sourceforge.prograde.sm.ProGradeJSM")
-                    testTask.jvmArgs("-Djava.security.policy=" + gradeConfiguration.secure)
-                    testTask.systemProperties(["main.sources": project.sourceSets.main.java.outputDir])
-                    testTask.systemProperties(["main.resources": mainResourcesDir])
-                }
-                testOutputDirectories.add(testTask.reports.getJunitXml().getDestination())
-                testTask.execute()
-            } catch (Exception e) {}
-        }
-
         /*
          * Investigate checkstyle results.
          */
@@ -385,7 +239,7 @@ class GradeTask extends DefaultTask {
 
         def testResultsDirectory = project.tasks.test.reports.getJunitXml().getDestination()
         toKeep = []
-        testOutputDirectories.each{ testOutputDirectory ->
+        project.testOutputDirectories.each{ testOutputDirectory ->
             if (testOutputDirectory.exists()) {
                 testOutputDirectory.eachFileMatch(~/.*\.xml/) { testResultsPath ->
                     def testResults = new XmlSlurper().parse(testResultsPath)
