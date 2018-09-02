@@ -32,7 +32,7 @@ class GradeTask extends DefaultTask {
      * @return a DOM object representing the data in the file.
      */
     def static openXML(path) {
-        return DOMBuilder.parse(new StringReader(path.text as String), false, false).documentElement
+        return DOMBuilder.parse(new StringReader(path.text), false, false).documentElement
     }
 
     def static fill(text, width=78, prefix='') {
