@@ -94,6 +94,7 @@ class GradePlugin implements Plugin<Project> {
                 destinationDir = project.sourceSets.main.java.outputDir
                 options.failOnError = false
                 options.debug = false
+                options.incremental = false
             }
             gradeTask.addListener(compileTask)
 
@@ -108,6 +109,7 @@ class GradePlugin implements Plugin<Project> {
                 destinationDir = project.sourceSets.test.java.outputDir
                 options.failOnError = false
                 options.debug = false
+                options.incremental = false
             }
             testCompileTask.dependsOn(compileTask)
             gradeTask.addListener(testCompileTask)
