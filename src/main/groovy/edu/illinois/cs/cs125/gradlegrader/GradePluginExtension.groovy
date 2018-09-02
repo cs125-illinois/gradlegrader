@@ -1,4 +1,4 @@
-package edu.illinois.cs.cs125.gradle
+package edu.illinois.cs.cs125.gradlegrader
 
 import org.gradle.api.Project
 import org.gradle.api.provider.Property

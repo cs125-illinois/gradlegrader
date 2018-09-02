@@ -1,4 +1,4 @@
-package edu.illinois.cs.cs125.gradle
+package edu.illinois.cs.cs125.gradlegrader
 
 import groovy.json.JsonOutput
 import groovy.xml.DOMBuilder
