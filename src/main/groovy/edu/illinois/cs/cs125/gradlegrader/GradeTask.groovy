@@ -114,7 +114,7 @@ class GradeTask extends DefaultTask {
                 }
             }
             assert destination
-            assert gradeConfiguration.reporting[destination as String]
+            assert gradeConfiguration.reporting[destination]
             gradeConfiguration.reporting.used = destination
         }
 
@@ -145,7 +145,7 @@ class GradeTask extends DefaultTask {
             } catch (Exception ignored) { }
         }
         if (gradeConfiguration.students) {
-            def location = gradeConfiguration.students.location as String
+            def location = gradeConfiguration.students.location
             def emails = []
             try {
                 def emailString = new File(location).text.trim()
@@ -171,7 +171,7 @@ class GradeTask extends DefaultTask {
                         throw new GradleException("wrong email count: should only have " +
                                 gradeConfiguration.students.count + " email")
                     }
-                    emails.each { String email ->
+                    emails.each { email ->
                         if (!EmailValidator.getInstance().isValid(email)) {
                             System.err.println "FAILURE: " + email +
                                     " is not a valid email address. Please fix " + location + "."
@@ -241,7 +241,7 @@ class GradeTask extends DefaultTask {
         toKeep = []
         project.testOutputDirectories.each{ testOutputDirectory ->
             if (testOutputDirectory.exists()) {
-                testOutputDirectory.eachFileMatch(~/.*\.xml/) { String testResultsPath ->
+                testOutputDirectory.eachFileMatch(~/.*\.xml/) { testResultsPath ->
                     def testResults = new XmlSlurper().parse(testResultsPath)
                     mergedXML.appendNode(testResults)
                 }
