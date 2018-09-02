@@ -63,8 +63,8 @@ class GradePlugin implements Plugin<Project> {
 
         def testOutputDirectories = []
         def packagePath = ""
-        if (gradeConfiguration.package) {
-            packagePath = gradeConfiguration.package.replace(".", File.separator)
+        if (gradeConfiguration["package"]) {
+            packagePath = gradeConfiguration["package"].replace(".", File.separator)
         }
         def mainResourcesDir = project.tasks.processResources.getDestinationDir()
 
@@ -84,7 +84,7 @@ class GradePlugin implements Plugin<Project> {
             }
 
             sources = project.sourceSets.main.java.srcDirs
-            if (gradeConfiguration.package) {
+            if (gradeConfiguration["package"]) {
                 sources = sources.collect { String it -> new File(it, packagePath) }
             }
             def compileTask = project.tasks.create(name: "compile" + name, type: JavaCompile) {
@@ -98,7 +98,7 @@ class GradePlugin implements Plugin<Project> {
             gradeTask.addListener(compileTask)
 
             sources = project.sourceSets.test.java.srcDirs
-            if (gradeConfiguration.package) {
+            if (gradeConfiguration["package"]) {
                 sources = sources.collect { String it -> new File(it, packagePath ) }
             }
             def testCompileTask = project.tasks.create(name: "compileTest" + name, type: JavaCompile) {

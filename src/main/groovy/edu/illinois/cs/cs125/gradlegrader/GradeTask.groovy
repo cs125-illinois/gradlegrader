@@ -32,7 +32,7 @@ class GradeTask extends DefaultTask {
      * @return a DOM object representing the data in the file.
      */
     def static openXML(path) {
-        return DOMBuilder.parse(new StringReader(path.text), false, false).documentElement
+        return DOMBuilder.parse(new StringReader(path.text as String), false, false).documentElement
     }
 
     def static fill(text, width=78, prefix='') {
@@ -107,13 +107,14 @@ class GradeTask extends DefaultTask {
                 gradeConfiguration.reporting.file = project.findProperty("grade.reporting.file")
             } else {
                 if (gradeConfiguration.reporting.size() == 1) {
+                    //noinspection GroovyAssignabilityCheck
                     destination = gradeConfiguration.reporting.keySet().toArray()[0]
                 } else {
                     destination = gradeConfiguration.reporting.default
                 }
             }
             assert destination
-            assert gradeConfiguration.reporting[destination]
+            assert gradeConfiguration.reporting[destination as String]
             gradeConfiguration.reporting.used = destination
         }
 
@@ -141,10 +142,10 @@ class GradeTask extends DefaultTask {
                         head: gitRepository.resolve(Constants.HEAD).name
                 ]
 
-            } catch (Exception e) { }
+            } catch (Exception ignored) { }
         }
         if (gradeConfiguration.students) {
-            def location = gradeConfiguration.students.location
+            def location = gradeConfiguration.students.location as String
             def emails = []
             try {
                 def emailString = new File(location).text.trim()
@@ -155,7 +156,7 @@ class GradeTask extends DefaultTask {
                 if (emails.length == 0) {
                     throw new Exception()
                 }
-            } catch (Exception e) {
+            } catch (Exception ignored) {
                 if (gradeConfiguration.students.require) {
                     System.err.println "FAILURE: Before running the autograder, please add your email address to " +
                             location + "."
@@ -170,7 +171,7 @@ class GradeTask extends DefaultTask {
                         throw new GradleException("wrong email count: should only have " +
                                 gradeConfiguration.students.count + " email")
                     }
-                    emails.each { email ->
+                    emails.each { String email ->
                         if (!EmailValidator.getInstance().isValid(email)) {
                             System.err.println "FAILURE: " + email +
                                     " is not a valid email address. Please fix " + location + "."
@@ -178,7 +179,7 @@ class GradeTask extends DefaultTask {
                         }
                         if (gradeConfiguration.students.suffix) {
                             def emailParts = email.split("@")
-                            if (!(emailParts[0] + gradeConfiguration.students.suffix).equals(email)) {
+                            if ((emailParts[0] + gradeConfiguration.students.suffix) != email) {
                                 System.err.println "FAILURE: " + email + " is not an " +
                                         gradeConfiguration.students.suffix + " email address. " +
                                         "Please fix " + location + "."
@@ -222,7 +223,7 @@ class GradeTask extends DefaultTask {
                 toRemove.each { checkstyleSelector ->
                     gradeConfiguration.checkstyle.selectors.remove(checkstyleSelector)
                 }
-            } catch (Exception e) {
+            } catch (Exception ignored) {
                 gradeConfiguration.checkstyle.selectors = [
                     gradeConfiguration.checkstyle.missing
                 ]
@@ -237,17 +238,16 @@ class GradeTask extends DefaultTask {
          */
         def mergedXML = new XmlSlurper().parseText("<testsuites></testsuites>")
 
-        def testResultsDirectory = project.tasks.test.reports.getJunitXml().getDestination()
         toKeep = []
         project.testOutputDirectories.each{ testOutputDirectory ->
             if (testOutputDirectory.exists()) {
-                testOutputDirectory.eachFileMatch(~/.*\.xml/) { testResultsPath ->
+                testOutputDirectory.eachFileMatch(~/.*\.xml/) { String testResultsPath ->
                     def testResults = new XmlSlurper().parse(testResultsPath)
                     mergedXML.appendNode(testResults)
                 }
             }
         }
-        mergedXML = DOMBuilder.parse(new StringReader(groovy.xml.XmlUtil.serialize(mergedXML)), false, false).documentElement
+        mergedXML = DOMBuilder.parse(new StringReader(XmlUtil.serialize(mergedXML)), false, false).documentElement
         use (DOMCategory) {
             gradeConfiguration.test.selectors.each { testSelector ->
                 if (mergedXML.xpath(testSelector.selector, BOOLEAN)) {
