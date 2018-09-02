@@ -1,6 +1,7 @@
 package edu.illinois.cs.cs125.gradlegrader
 
 import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
 import groovy.xml.DOMBuilder
 import groovy.xml.XmlUtil
 import groovy.xml.dom.DOMCategory
@@ -9,6 +10,7 @@ import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.StringEntity
 import org.apache.http.impl.client.HttpClientBuilder
 import org.eclipse.jgit.lib.Constants
+import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
@@ -118,6 +120,7 @@ class GradeTask extends DefaultTask {
             gradeConfiguration.reporting.used = destination
         }
 
+        def lastCommitTime
         /*
          * If configured, try to extract some information about their repository.
          */
@@ -133,17 +136,20 @@ class GradeTask extends DefaultTask {
                 config.getSubsections('remote').each { remote ->
                     remoteURLs[remote] = config.getString('remote', remote, 'url')
                 }
+
+                def headCommitID = gitRepository.resolve(Constants.HEAD)
                 gradeConfiguration.vcs.git = [
                         remotes: remoteURLs,
                         user: [
                                 name : config.getString("user", null, "name"),
                                 email: config.getString("user", null, "email")
                         ],
-                        head: gitRepository.resolve(Constants.HEAD).name
+                        head: headCommitID.name
                 ]
-
+                lastCommitTime = new RevWalk(gitRepository).parseCommit(headCommitID).authorIdent.when.time
             } catch (Exception ignored) { }
         }
+
         if (gradeConfiguration.students) {
             def location = gradeConfiguration.students.location
             def emails = []
@@ -202,6 +208,24 @@ class GradeTask extends DefaultTask {
             }
         }
         gradeConfiguration.timestamp = System.currentTimeMillis()
+
+        def previousPoints = [
+                maxScore: 0,
+                maxScoreTimestamp: 0,
+                increased: false
+        ]
+        def foundPrevious = false
+        if (gradeConfiguration.forceCommitAfterPoints && lastCommitTime) {
+            try {
+                previousPoints = new JsonSlurper().parseText(project.file('config/.grade.json').text)
+                foundPrevious = true
+            } catch (Exception ignored) {}
+            if (previousPoints.increased && previousPoints.maxScoreTimestamp > lastCommitTime) {
+                System.err.println "FAILURE: Before running the autograder, " +
+                        "please commit the changes that increased your score."
+                throw new GradleException("Commit your changes before rerunning the autograder.")
+            }
+        }
 
         /*
          * Investigate checkstyle results.
@@ -304,5 +328,19 @@ class GradeTask extends DefaultTask {
         }
 
         reportConfiguration(gradeConfiguration)
+
+        if (gradeConfiguration.forceCommitAfterPoints && lastCommitTime) {
+            if (totalScore > previousPoints.maxScore) {
+                previousPoints.maxScore = totalScore
+                previousPoints.maxScoreTimestamp = gradeConfiguration.timestamp
+                previousPoints.increased = foundPrevious
+            } else {
+                previousPoints.increased = false
+            }
+            def file = project.file('config/.grade.json')
+            def writer = file.newWriter()
+            writer << JsonOutput.prettyPrint(JsonOutput.toJson(previousPoints))
+            writer.close()
+        }
     }
 }
