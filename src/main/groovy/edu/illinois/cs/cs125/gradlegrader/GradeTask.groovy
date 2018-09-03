@@ -330,12 +330,20 @@ class GradeTask extends DefaultTask {
         reportConfiguration(gradeConfiguration)
 
         if (gradeConfiguration.forceCommitAfterPoints && lastCommitTime) {
+            def previousMaxScore = previousPoints.maxScore
             if (totalScore > previousPoints.maxScore) {
                 previousPoints.maxScore = totalScore
                 previousPoints.maxScoreTimestamp = gradeConfiguration.timestamp
                 previousPoints.increased = foundPrevious
             } else {
                 previousPoints.increased = false
+            }
+            if (previousPoints.increased) {
+                println "".padRight(78, "-")
+                println "Congrats! Your score increased from " + previousMaxScore + " to " + previousPoints.maxScore
+                println "COMMIT YOUR WORK RIGHT AWAY!"
+                println "The autograder will not run again until you do"
+                println "".padRight(78, "-")
             }
             def file = project.file('config/.grade.json')
             def writer = file.newWriter()
