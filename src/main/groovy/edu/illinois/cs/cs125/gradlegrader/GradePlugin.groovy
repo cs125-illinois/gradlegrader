@@ -24,11 +24,6 @@ class GradePlugin implements Plugin<Project> {
             throw new GradleException("checkstyle is configured for grading but not in build.gradle")
         }
 
-        if (project.tasks.hasProperty('checkstyleMain')) {
-            project.tasks.checkstyleMain.ignoreFailures = true
-            project.tasks.checkstyleMain.outputs.upToDateWhen { false }
-        }
-
         def gradeTask = project.tasks.create('grade', GradeTask) {}
 
         [project.tasks.clean,
@@ -49,8 +44,21 @@ class GradePlugin implements Plugin<Project> {
         project.tasks.processResources.mustRunAfter(project.tasks.clean)
         gradeTask.dependsOn(project.tasks.processTestResources)
         project.tasks.processTestResources.mustRunAfter(project.tasks.clean)
-        project.tasks.compileJava.enabled = false
-        project.tasks.compileTestJava.enabled = false
+
+        def disableCompileTask = project.task('beforeGrade') {
+            doLast {
+                if (project.tasks.hasProperty('checkstyleMain')) {
+                    project.tasks.checkstyleMain.ignoreFailures = true
+                    project.tasks.checkstyleMain.outputs.upToDateWhen { false }
+                }
+                project.tasks.compileJava.enabled = false
+                project.tasks.compileTestJava.enabled = false
+            }
+        }
+        gradeTask.dependsOn(disableCompileTask)
+        project.tasks.checkstyleMain.mustRunAfter(disableCompileTask)
+        project.tasks.compileJava.mustRunAfter(disableCompileTask)
+        project.tasks.compileTestJava.mustRunAfter(disableCompileTask)
 
         /*
          * We want to ignore errors in this block because we want to continue even if
