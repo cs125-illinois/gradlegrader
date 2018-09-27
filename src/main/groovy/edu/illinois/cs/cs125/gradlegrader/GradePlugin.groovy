@@ -69,15 +69,16 @@ class GradePlugin implements Plugin<Project> {
         def mainResourcesDir = project.tasks.processResources.getDestinationDir()
 
         gradeConfiguration.files.each{info ->
-            String compile, testCompile, test, name
+            String[] compile
+            String testCompile, test, name
             def sources
             try {
                 compile = info.compile
                 testCompile = info.test + "Test.java"
                 test = info.test + "Test"
-                name = info.test
+                name = compile.collect { String it -> it.replaceFirst(~/\.[^.]+$/, '') }.join()
             } catch (Exception ignored) {
-                compile = info + ".java"
+                compile = [ info + ".java" ]
                 testCompile = info + "Test.java"
                 test = info + "Test"
                 name = info
@@ -87,6 +88,7 @@ class GradePlugin implements Plugin<Project> {
             if (gradeConfiguration["package"]) {
                 sources = sources.collect { String it -> new File(it, packagePath) }
             }
+
             def compileTask = project.tasks.create(name: "compile" + name, type: JavaCompile) {
                 source = sources
                 include compile
