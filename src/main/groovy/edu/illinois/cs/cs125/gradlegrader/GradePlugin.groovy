@@ -94,7 +94,7 @@ class GradePlugin implements Plugin<Project> {
 
             sources = project.sourceSets.main.java.srcDirs
             if (gradeConfiguration["package"]) {
-                sources = sources.collect { String it -> new File(it, packagePath) }
+                sources = sources.collect { File it -> new File(it, packagePath) }
             }
 
             def compileTask = project.tasks.create(name: "compile" + name, type: JavaCompile) {
@@ -110,7 +110,7 @@ class GradePlugin implements Plugin<Project> {
 
             sources = project.sourceSets.test.java.srcDirs
             if (gradeConfiguration["package"]) {
-                sources = sources.collect { String it -> new File(it, packagePath ) }
+                sources = sources.collect { File it -> new File(it, packagePath ) }
             }
             def testCompileTask = project.tasks.create(name: "compileTest" + name, type: JavaCompile) {
                 source = sources
