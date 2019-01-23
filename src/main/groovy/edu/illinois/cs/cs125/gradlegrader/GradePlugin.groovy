@@ -25,12 +25,17 @@ class GradePlugin implements Plugin<Project> {
         }
 
         def gradeTask = project.tasks.create('grade', GradeTask) {}
+        //def testDebugUnitTest = project.findProject(':app').tasks.testDebugUnitTest
+
+        def testDebugUnitTest = project.getTasksByName(":app:testDebugUnitTest")
 
         [project.tasks.clean,
          project.tasks.processResources,
-         project.tasks.processTestResources].each { task ->
+         project.tasks.processTestResources,
+         testDebugUnitTest].each { task ->
             gradeTask.addListener(task)
         }
+
         if (gradeConfiguration.checkstyle) {
             gradeTask.addListener(project.tasks.checkstyleMain)
         }
@@ -44,6 +49,9 @@ class GradePlugin implements Plugin<Project> {
         project.tasks.processResources.mustRunAfter(project.tasks.clean)
         gradeTask.dependsOn(project.tasks.processTestResources)
         project.tasks.processTestResources.mustRunAfter(project.tasks.clean)
+
+        testDebugUnitTest.mustRunAfter(project.tasks.clean)
+        gradeTask.dependsOn(testDebugUnitTest)
 
         def disableCompileTask = project.task('beforeGrade') {
             doLast {
