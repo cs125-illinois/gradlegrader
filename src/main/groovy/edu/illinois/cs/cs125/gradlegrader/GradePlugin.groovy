@@ -33,10 +33,6 @@ class GradePlugin implements Plugin<Project> {
             gradeTask.addListener(task)
         }
 
-        if (gradeConfiguration.alwaysClean) {
-            gradeTask.addListener(project.tasks.clean)
-            gradeTask.dependsOn(project.tasks.clean)
-        }
         if (gradeConfiguration.checkstyle) {
             gradeTask.addListener(project.tasks.checkstyleMain)
             gradeTask.dependsOn(project.tasks.checkstyleMain)
