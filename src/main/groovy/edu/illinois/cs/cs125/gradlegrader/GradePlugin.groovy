@@ -158,16 +158,17 @@ class GradePlugin implements Plugin<Project> {
                 if (tasks.size() != 1) {
                     throw new GradleException("task description " + taskName + " matched multiple tasks")
                 }
-                taskProject.tasks.withType(AbstractCompile).each { task ->
-                    gradeTask.addListener(task)
-                    task.options.failOnError = false
-                }
                 def task = tasks[0]
                 if (!(task instanceof AbstractTestTask)) {
                     throw new GradleException("task " + taskName + " is not a test task")
                 }
                 task.ignoreFailures = true
                 task.testLogging.showStandardStreams = showStreams
+
+                taskProject.tasks.withType(AbstractCompile).each { task ->
+                    gradeTask.addListener(task)
+                    task.options.failOnError = false
+                }
 
                 gradeTask.addListener(task)
                 gradeTask.dependsOn(task)
