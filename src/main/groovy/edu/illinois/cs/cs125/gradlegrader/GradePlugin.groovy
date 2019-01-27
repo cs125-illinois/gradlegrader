@@ -22,53 +22,56 @@ class GradePlugin implements Plugin<Project> {
         assert gradeConfiguration
         project.ext.set("gradeConfiguration", gradeConfiguration)
 
-        if (gradeConfiguration.checkstyle && !project.tasks.hasProperty('checkstyleMain')) {
-            throw new GradleException("checkstyle is configured for grading but not in build.gradle")
-        }
-
-        def gradeTask = project.tasks.create('grade', GradeTask) {}
-
-        [project.tasks.processResources,
-         project.tasks.processTestResources].each { task ->
-            gradeTask.addListener(task)
-        }
-
-        if (gradeConfiguration.checkstyle) {
-            gradeTask.addListener(project.tasks.checkstyleMain)
-            gradeTask.dependsOn(project.tasks.checkstyleMain)
-            project.tasks.checkstyleMain.mustRunAfter(project.tasks.clean)
-        }
-
-        gradeTask.dependsOn(project.tasks.processResources)
-        project.tasks.processResources.mustRunAfter(project.tasks.clean)
-        gradeTask.dependsOn(project.tasks.processTestResources)
-        project.tasks.processTestResources.mustRunAfter(project.tasks.clean)
-
-        def disableCompileTask = project.task('beforeGrade') {
-            doLast {
-                if (project.tasks.hasProperty('checkstyleMain')) {
-                    project.tasks.checkstyleMain.ignoreFailures = true
-                    project.tasks.checkstyleMain.outputs.upToDateWhen { false }
-                }
-                if (gradeConfiguration.files) {
-                    project.tasks.compileJava.enabled = false
-                    project.tasks.compileTestJava.enabled = false
-                }
-            }
-        }
-        gradeTask.dependsOn(disableCompileTask)
-        project.tasks.checkstyleMain.mustRunAfter(disableCompileTask)
-        project.tasks.compileJava.mustRunAfter(disableCompileTask)
-        project.tasks.compileTestJava.mustRunAfter(disableCompileTask)
-
         def testOutputDirectories = []
         def packagePath = ""
         if (gradeConfiguration["package"]) {
             packagePath = gradeConfiguration["package"].replace(".", File.separator)
         }
-        def mainResourcesDir = project.tasks.processResources.getDestinationDir()
+
+        def gradeTask = project.tasks.create('grade', GradeTask) {}
+
+        def showStreams = false
+        if (gradeConfiguration.showStreams) {
+            showStreams = true
+        }
 
         if (gradeConfiguration.files) {
+            if (gradeConfiguration.checkstyle && !project.tasks.hasProperty('checkstyleMain')) {
+                throw new GradleException("checkstyle is configured for grading but not in build.gradle")
+            }
+
+            [project.tasks.processResources,
+             project.tasks.processTestResources].each { task ->
+                gradeTask.addListener(task)
+            }
+
+            if (gradeConfiguration.checkstyle) {
+                gradeTask.addListener(project.tasks.checkstyleMain)
+                gradeTask.dependsOn(project.tasks.checkstyleMain)
+                project.tasks.checkstyleMain.mustRunAfter(project.tasks.clean)
+            }
+
+            gradeTask.dependsOn(project.tasks.processResources)
+            project.tasks.processResources.mustRunAfter(project.tasks.clean)
+            gradeTask.dependsOn(project.tasks.processTestResources)
+            project.tasks.processTestResources.mustRunAfter(project.tasks.clean)
+
+            def disableCompileTask = project.task('beforeGrade') {
+                doLast {
+                    if (project.tasks.hasProperty('checkstyleMain')) {
+                        project.tasks.checkstyleMain.ignoreFailures = true
+                        project.tasks.checkstyleMain.outputs.upToDateWhen { false }
+                    }
+                    project.tasks.compileJava.enabled = false
+                    project.tasks.compileTestJava.enabled = false
+                }
+            }
+            gradeTask.dependsOn(disableCompileTask)
+            project.tasks.checkstyleMain.mustRunAfter(disableCompileTask)
+            project.tasks.compileJava.mustRunAfter(disableCompileTask)
+            project.tasks.compileTestJava.mustRunAfter(disableCompileTask)
+
+            def mainResourcesDir = project.tasks.processResources.getDestinationDir()
             gradeConfiguration.files.each { info ->
                 String[] compile
                 String testCompile, test, name
@@ -118,10 +121,7 @@ class GradePlugin implements Plugin<Project> {
                 gradeTask.addListener(testCompileTask)
 
 
-                def showStreams = false
-                if (gradeConfiguration.showStreams) {
-                    showStreams = true
-                }
+
                 def testTask = project.tasks.create(name: "test" + name, type: Test) {
                     useTestNG() { useDefaultListeners = true }
                     testLogging.showStandardStreams = showStreams
@@ -159,6 +159,7 @@ class GradePlugin implements Plugin<Project> {
                     throw new GradleException("task description " + taskName + " matched multiple tasks")
                 }
                 taskProject.tasks.withType(AbstractCompile).each { task ->
+                    gradeTask.addListener(task)
                     task.options.failOnError = false
                 }
                 def task = tasks[0]
@@ -166,12 +167,13 @@ class GradePlugin implements Plugin<Project> {
                     throw new GradleException("task " + taskName + " is not a test task")
                 }
                 task.ignoreFailures = true
+                task.testLogging.showStandardStreams = showStreams
+
                 gradeTask.addListener(task)
                 gradeTask.dependsOn(task)
                 testOutputDirectories.add(task.reports.getJunitXml().getDestination())
             }
         }
-        print testOutputDirectories
         project.ext.set("testOutputDirectories", testOutputDirectories)
     }
 }
