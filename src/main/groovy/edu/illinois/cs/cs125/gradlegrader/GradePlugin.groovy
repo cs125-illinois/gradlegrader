@@ -165,9 +165,9 @@ class GradePlugin implements Plugin<Project> {
                 task.ignoreFailures = true
                 task.testLogging.showStandardStreams = showStreams
 
-                taskProject.tasks.withType(AbstractCompile).each { task ->
-                    gradeTask.addListener(task)
-                    task.options.failOnError = false
+                taskProject.tasks.withType(AbstractCompile).each { t ->
+                    gradeTask.addListener(t)
+                    t.options.failOnError = false
                 }
 
                 gradeTask.addListener(task)
