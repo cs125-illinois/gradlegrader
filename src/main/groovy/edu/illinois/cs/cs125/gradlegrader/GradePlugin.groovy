@@ -15,6 +15,11 @@ import org.yaml.snakeyaml.Yaml
 class GradePlugin implements Plugin<Project> {
 
     void apply(Project project) {
+        project.tasks.register('grade', GradeTask) { gradeTask ->
+            register(project, gradeTask)
+        }
+    }
+    void register(Project project, GradeTask gradeTask) {
         def extension = project.extensions.create('grade', GradePluginExtension, project)
 
         def yaml = new Yaml()
@@ -28,13 +33,20 @@ class GradePlugin implements Plugin<Project> {
             packagePath = gradeConfiguration["package"].replace(".", File.separator)
         }
 
-        def gradeTask = project.tasks.create('grade', GradeTask) {}
-
         def showStreams = false
         if (gradeConfiguration.showStreams) {
             showStreams = true
         }
 
+        if (gradeConfiguration.checkstyle) {
+            gradeTask.addListener(project.rootProject.tasks.checkstyleMain)
+            gradeTask.dependsOn(project.rootProject.tasks.checkstyleMain)
+            project.rootProject.tasks.checkstyleMain.configure {
+                mustRunAfter project.tasks.clean
+                ignoreFailures true
+                outputs.upToDateWhen { false }
+            }
+        }
         if (gradeConfiguration.files) {
             if (gradeConfiguration.checkstyle && !project.tasks.hasProperty('checkstyleMain')) {
                 throw new GradleException("checkstyle is configured for grading but not in build.gradle")
@@ -45,31 +57,21 @@ class GradePlugin implements Plugin<Project> {
                 gradeTask.addListener(task)
             }
 
-            if (gradeConfiguration.checkstyle) {
-                gradeTask.addListener(project.tasks.checkstyleMain)
-                gradeTask.dependsOn(project.tasks.checkstyleMain)
-                project.tasks.checkstyleMain.mustRunAfter(project.tasks.clean)
-            }
-
             gradeTask.dependsOn(project.tasks.processResources)
-            project.tasks.processResources.mustRunAfter(project.tasks.clean)
-            gradeTask.dependsOn(project.tasks.processTestResources)
-            project.tasks.processTestResources.mustRunAfter(project.tasks.clean)
-
-            def disableCompileTask = project.task('beforeGrade') {
-                doLast {
-                    if (project.tasks.hasProperty('checkstyleMain')) {
-                        project.tasks.checkstyleMain.ignoreFailures = true
-                        project.tasks.checkstyleMain.outputs.upToDateWhen { false }
-                    }
-                    project.tasks.compileJava.enabled = false
-                    project.tasks.compileTestJava.enabled = false
-                }
+            project.tasks.processResources.configure {
+                mustRunAfter project.tasks.clean
             }
-            gradeTask.dependsOn(disableCompileTask)
-            project.tasks.checkstyleMain.mustRunAfter(disableCompileTask)
-            project.tasks.compileJava.mustRunAfter(disableCompileTask)
-            project.tasks.compileTestJava.mustRunAfter(disableCompileTask)
+            gradeTask.dependsOn(project.tasks.processTestResources)
+            project.tasks.processTestResources.configure {
+                mustRunAfter project.tasks.clean
+            }
+
+            project.tasks.compileJava.configure {
+                enabled false
+            }
+            project.tasks.compileTestJava.configure {
+                enabled false
+            }
 
             def mainResourcesDir = project.tasks.processResources.getDestinationDir()
             gradeConfiguration.files.each { info ->
@@ -120,8 +122,6 @@ class GradePlugin implements Plugin<Project> {
                 testCompileTask.dependsOn(compileTask)
                 gradeTask.addListener(testCompileTask)
 
-
-
                 def testTask = project.tasks.create(name: "test" + name, type: Test) {
                     useTestNG() { useDefaultListeners = true }
                     testLogging.showStandardStreams = showStreams
@@ -162,12 +162,16 @@ class GradePlugin implements Plugin<Project> {
                 if (!(task instanceof AbstractTestTask)) {
                     throw new GradleException("task " + taskName + " is not a test task")
                 }
-                task.ignoreFailures = true
-                task.testLogging.showStandardStreams = showStreams
+                task.configure {
+                    ignoreFailures = true
+                    testLogging.showStandardStreams showStreams
+                }
 
                 taskProject.tasks.withType(AbstractCompile).each { t ->
                     gradeTask.addListener(t)
-                    t.options.failOnError = false
+                    t.configure {
+                        options.failOnError false
+                    }
                 }
 
                 gradeTask.addListener(task)
