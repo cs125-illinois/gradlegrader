@@ -41,11 +41,6 @@ class GradePlugin implements Plugin<Project> {
         if (gradeConfiguration.checkstyle) {
             gradeTask.addListener(project.rootProject.tasks.checkstyleMain)
             gradeTask.dependsOn(project.rootProject.tasks.checkstyleMain)
-            project.rootProject.tasks.checkstyleMain.configure {
-                mustRunAfter project.tasks.clean
-                ignoreFailures true
-                outputs.upToDateWhen { false }
-            }
         }
 
         if (gradeConfiguration.files) {
@@ -144,6 +139,7 @@ class GradePlugin implements Plugin<Project> {
             }
         } else if (gradeConfiguration.tasks) {
 
+            def allTasks = [], allCompileTasks = [], allTestTasks = []
             gradeConfiguration.tasks.each { taskName ->
                 def nameParts = taskName.split(":")
                 def taskProject = false, tasks = []
@@ -164,25 +160,46 @@ class GradePlugin implements Plugin<Project> {
                 if (!(task instanceof AbstractTestTask)) {
                     throw new GradleException("task " + taskName + " is not a test task")
                 }
-                task.configure {
-                    ignoreFailures = true
-                    testLogging.showStandardStreams showStreams
-                }
 
-                taskProject.tasks.withType(AbstractCompile).each { t ->
-                    gradeTask.addListener(t)
-                    t.configure {
-                        options.failOnError false
-                        outputs.upToDateWhen { false }
-                    }
-                }
-
-                gradeTask.addListener(task)
+                allTasks.add(task)
+                allCompileTasks.addAll(taskProject.tasks.withType(AbstractCompile))
+                allTestTasks.add(task)
                 gradeTask.dependsOn(task)
 
                 testOutputDirectories.add(task.reports.getJunitXml().getDestination())
             }
+
+            def reconfigureForGrading = project.task("reconfigureCompileForGrading") {
+                doLast {
+                    project.rootProject.tasks.checkstyleMain.configure {
+                        mustRunAfter project.tasks.clean
+                        ignoreFailures true
+                        outputs.upToDateWhen { false }
+                    }
+                    allTestTasks.each { t ->
+                        gradeTask.addListener(t)
+                        t.configure {
+                            ignoreFailures = true
+                            testLogging.showStandardStreams showStreams
+                        }
+                    }
+                    allCompileTasks.each { t ->
+                        gradeTask.addListener(t)
+                        t.configure {
+                            options.failOnError false
+                            outputs.upToDateWhen { false }
+                        }
+                    }
+                }
+            }
+            allTasks.each { t ->
+                t.mustRunAfter(reconfigureForGrading)
+            }
+
+            gradeTask.dependsOn(reconfigureForGrading)
+            gradeTask.mustRunAfter(reconfigureForGrading)
         }
+
         project.ext.set("testOutputDirectories", testOutputDirectories)
     }
 }
