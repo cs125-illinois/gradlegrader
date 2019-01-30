@@ -47,6 +47,7 @@ class GradePlugin implements Plugin<Project> {
                 outputs.upToDateWhen { false }
             }
         }
+
         if (gradeConfiguration.files) {
             if (gradeConfiguration.checkstyle && !project.tasks.hasProperty('checkstyleMain')) {
                 throw new GradleException("checkstyle is configured for grading but not in build.gradle")
@@ -142,6 +143,7 @@ class GradePlugin implements Plugin<Project> {
                 gradeTask.dependsOn(testTask)
             }
         } else if (gradeConfiguration.tasks) {
+
             gradeConfiguration.tasks.each { taskName ->
                 def nameParts = taskName.split(":")
                 def taskProject = false, tasks = []
@@ -171,11 +173,13 @@ class GradePlugin implements Plugin<Project> {
                     gradeTask.addListener(t)
                     t.configure {
                         options.failOnError false
+                        outputs.upToDateWhen { false }
                     }
                 }
 
                 gradeTask.addListener(task)
                 gradeTask.dependsOn(task)
+
                 testOutputDirectories.add(task.reports.getJunitXml().getDestination())
             }
         }
