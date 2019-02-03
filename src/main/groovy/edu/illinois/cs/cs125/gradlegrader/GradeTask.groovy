@@ -17,6 +17,11 @@ import org.gradle.api.GradleException
 import org.gradle.api.logging.StandardOutputListener
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
+import org.xml.sax.ErrorHandler
+import org.xml.sax.SAXException
+import org.xml.sax.SAXParseException
+
+import javax.xml.parsers.DocumentBuilderFactory
 
 import static javax.xml.xpath.XPathConstants.BOOLEAN
 
@@ -34,7 +39,19 @@ class GradeTask extends DefaultTask {
      * @return a DOM object representing the data in the file.
      */
     def static openXML(path) {
-        return DOMBuilder.parse(new StringReader(path.text), false, false).documentElement
+        def documentBuilderFactory = DocumentBuilderFactory.newInstance()
+        documentBuilderFactory.setValidating(false)
+        documentBuilderFactory.setNamespaceAware(false)
+        def documentBuilder = documentBuilderFactory.newDocumentBuilder()
+        documentBuilder.setErrorHandler(new ErrorHandler() {
+            @Override
+            void warning(SAXParseException exception) throws SAXException { }
+            @Override
+            void error(SAXParseException exception) throws SAXException { }
+            @Override
+            void fatalError(SAXParseException exception) throws SAXException { }
+        })
+        return documentBuilder.parse(path).documentElement
     }
 
     def static fill(text, width=78, prefix='') {
@@ -231,6 +248,7 @@ class GradeTask extends DefaultTask {
          * Investigate checkstyle results.
          */
         def toKeep = []
+
         if (gradeConfiguration.checkstyle) {
             def checkstyleResultsPath = project.tasks.checkstyleMain.getReports().getXml().getDestination()
             try {

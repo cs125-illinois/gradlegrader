@@ -14,11 +14,13 @@ import org.yaml.snakeyaml.Yaml
  */
 class GradePlugin implements Plugin<Project> {
 
+    @SuppressWarnings("UnstableApiUsage")
     void apply(Project project) {
         project.tasks.register('grade', GradeTask) { gradeTask ->
             register(project, gradeTask)
         }
     }
+
     void register(Project project, GradeTask gradeTask) {
         def extension = project.extensions.create('grade', GradePluginExtension, project)
 
@@ -40,12 +42,14 @@ class GradePlugin implements Plugin<Project> {
 
         if (gradeConfiguration.checkstyle) {
             gradeTask.addListener(project.rootProject.tasks.checkstyleMain)
-            gradeTask.dependsOn(project.rootProject.tasks.checkstyleMain)
         }
 
         if (gradeConfiguration.files) {
-            if (gradeConfiguration.checkstyle && !project.tasks.hasProperty('checkstyleMain')) {
-                throw new GradleException("checkstyle is configured for grading but not in build.gradle")
+            if (gradeConfiguration.checkstyle) {
+                if (!project.tasks.hasProperty('checkstyleMain')) {
+                    throw new GradleException("checkstyle is configured for grading but not in build.gradle")
+                }
+                gradeTask.dependsOn(project.rootProject.tasks.checkstyleMain)
             }
 
             [project.tasks.processResources,
@@ -129,6 +133,7 @@ class GradePlugin implements Plugin<Project> {
                 gradeTask.addListener(testTask)
                 if (project.hasProperty("grade.secure") && gradeConfiguration.secure) {
                     gradeConfiguration.secureRun = true
+                    //noinspection SpellCheckingInspection
                     testTask.jvmArgs("-Djava.security.manager=net.sourceforge.prograde.sm.ProGradeJSM")
                     testTask.jvmArgs("-Djava.security.policy=" + (String) gradeConfiguration.secure)
                     testTask.systemProperties(["main.sources": project.sourceSets.main.java.outputDir])
@@ -190,8 +195,12 @@ class GradePlugin implements Plugin<Project> {
                             outputs.upToDateWhen { false }
                         }
                     }
+                    try {
+                        project.rootProject.tasks.checkstyleMain.execute()
+                    } catch (Exception ignored) { }
                 }
             }
+
             allTasks.each { t ->
                 t.mustRunAfter(reconfigureForGrading)
             }
