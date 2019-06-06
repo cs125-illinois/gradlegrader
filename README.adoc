@@ -1,0 +1,437 @@
+++++
+<div align="center">
+  <a href="https://github.com/cs125-illinois">
+    <img src="https://cs125.cs.illinois.edu/img/logos/cs125-with-border-120x120.png" alt="CS 125 Logo" data-canonical-src="https://cs125.cs.illinois.edu/img/logos/cs125-with-border-120x120.png" style="max-width:100%;">
+  </a>
+</div>
+++++
+
+= https://cs125.cs.illinois.edu/[CS 125] Gradle Grading Plugin
+
+This Gradle plugin provides autograding for Java-based assignments.
+
+== Features
+
+* Parses output from JUnit-compatible test tasks and `checkstyle`
+* Assigns test case point values from annotations
+* Manufactures needed Gradle tasks to help reduce build script size
+* Pretty-printed output to standard out for student inspection
+* Multiple reporting options for resulting JSON, including local file dump and remote POST
+* Can require students to commit their work after earning more points
+* Compatible with Gradle 5
+
+== Installing
+
+GradleGrader is available from Maven Central. To apply the Gradle plugin, add something
+like this to the project you need to grade, or to the root project if you're grading multiple
+subprojects:
+
+[source,groovy]
+----
+apply plugin: 'edu.illinois.cs.cs125.gradlegrader'
+
+buildscript {
+    dependencies {
+        classpath 'com.github.cs125-illinois:gradlegrader:1.0.0'
+    }
+}
+
+gradlegrader {
+    // Grading configuration goes here - see the Configuring section below
+}
+----
+
+To allow using GradleGrader annotations in test suites, add the same package as
+a dependency to the project(s) containing graded test suites:
+
+    testImplementation 'com.github.cs125-illinois:gradlegrader:1.0.0'
+
+To apply the test dependency to all subprojects, add that to a `subprojects` &rarr;
+`afterEvaluate` &rarr; `dependencies` block in the root project's build script.
+
+== Writing Tests
+
+To mark a test case as graded, add the `@Graded` annotation on the test method
+and specify the point value with the `points` property.
+The optional `friendlyName` property sets the description of the test case in the
+report.
+
+You can use the (repeatable) `@Tag` annotation to add tags to tests, which will be
+added to their result object in the output JSON. The `name` property becomes the JSON
+property name; the `value` property becomes the (string) value.
+
+== Configuring
+
+All other configuration goes in the `gradlegrader` block in the Gradle script.
+That block has the following properties:
+
+* `assignment` (optional) is the string ID of the assignment in your system.
+  It produces an `assignment` property on the result JSON object.
+* `captureOutput` (default false) sets whether to record the textual output of
+  the `checkstyle`, compile, and test tasks. The output is combined and written to the
+  `output` property of the final JSON object.
+* `keepDaemon` (default true) sets whether to leave the Gradle daemon running after the
+  grade task completes. Setting this to false (i.e. killing the Gradle process) helps
+  suppress Gradle spew but produces an IDE warning the first time, which may alarm students.
+* `maxPoints` (optional) sets an overall points cap.
+* `subprojects` (optional) sets the Gradle projects to grade. Each must have a `test`
+  or `testDebugUnitTest` task. If this property is not specified, only the project to which
+  the plugin is applied is graded.
+
+`gradlegrader` also contains several blocks.
+
+=== `gradlegrader` &rarr; `checkstyle`
+
+This block sets the `checkstyle` grading options. You must also apply the `checkstyle` plugin
+if you use `checkstyle` integration.
+
+* `configFile` (required if this block is present) is the `File` representing the `checkstyle`
+  rules XML file.
+* `exclude` (defaults to `+++**/gen/**+++`, `+++**/R.java+++`, `+++**/BuildConfig.java+++`)
+  is the list of file patterns to exclude from style checks.
+* `include` (defaults to `+++**/*.java+++`) is the list of file patterns to check for style.
+* `points` is the number of points earned for the absence of `checkstyle` violations.
+* `version` (defaults to `8.18`) is the `checkstyle` tool version to use.
+
+=== `gradlegrader` &rarr; `identification`
+
+This block sets the student identification policy.
+
+* `txtFile` (required if this block is present) is the `File` that students need to fill out
+  with their identities. If there are multiple students working on the project, this file should
+  have one identifier per line.
+* `validate` (defaults to always-true) is a `Spec` that each student identifier must pass.
+  To require university email addresses, you can use
+  `{ email +++->+++ email.endsWith('@university.edu') }`.
+* `countLimit` (defaults to must-be-one) is a `Spec` that the number of provided student identifiers
+  must pass.
+
+=== `gradlegrader` &rarr; `reporting`
+
+This block sets the grade reporting settings.
+
+* `jsonFile` (optional) is the `File` where a JSON report will be saved.
+* `printJson` (default false) sets whether the grade task will print the JSON result to
+  standard output.
+
+The `tag` function takes a name (string) and value (string or integer) and produces a property
+on the report JSON object.
+
+==== `gradlegrader` &rarr; `reporting` &rarr; `post`
+
+This block configures a POST request that submits the JSON report.
+
+* `endpoint` (required if this block is present) sets the URL to make the request to.
+
+The `includeFiles` function sets a list of `Files` (or a file collection) to be read and included
+in a `files` object on the POST JSON report. That information is not included in the local report.
+
+==== `gradlegrader` &rarr; `reporting` &rarr; `printPretty`
+
+This block configures the pretty grade report table printed to standard output for student
+inspection.
+
+* `enabled` (default true) sets whether the pretty-printed table is shown.
+* `notes` (optional) is the extra text to show below the grade report. This will be automatically
+  word-wrapped to the appropriate width unless you add newlines yourself.
+* `showTotal` (default true) sets whether the total score row is displayed.
+* `title` (optional) sets a caption at the top of the table.
+
+=== `gradlegrader` &rarr; `vcs`
+
+This block enables VCS (currently only Git) integration.
+
+* `git` (default false) enables Git integration, adding information about the student's Git
+  repository and identity to a `git` object on the JSON report.
+* `requireCommit` (default false) requires students to commit their changes after their score
+  increases. When this is enabled and the student's best score increases, a note about committing
+  is included in the pretty-printed table (if enabled) and the grade task will refuse to run
+  again until the changes are committed.
+
+== Example
+
+This is an example GradleGrader configuration block for an Android project with two modules:
+
+[source, groovy]
+----
+gradlegrader {
+    assignment 'Spring2019.MP0'
+    checkstyle {
+        points = 10
+        configFile = file('config/checkstyle.xml')
+    }
+    identification {
+        txtFile = file('email.txt')
+        validate = { email -> email.endsWith('@example.edu') }
+    }
+    reporting {
+        jsonFile = file('grade.json')
+        post {
+            endpoint = "https://example.com/progress"
+        }
+        printPretty {
+            title = "MP0: Location"
+            notes = "Note that the maximum local grade is 90/100. 10 points will be awarded during " +
+                    "official grading if you have submitted code that earns at least 40 points by " +
+                    "Monday, May 20."
+        }
+    }
+    subprojects project(':app'), project(':lib')
+    vcs {
+        git = true
+        requireCommit = true
+    }
+}
+----
+
+It has JUnit test suites with methods declared like this:
+
+[source, java]
+----
+@Test(timeout = 300)
+@Graded(points = 10)
+@Tag(name = "difficulty", value = "simple")
+@Tag(name = "function", value = "beenHere")
+public void testBeenHereSimple() {
+    // tests the student's beenHere function
+}
+----
+
+If the student has an `app` module that fails to compile and a `lib` module that is partially correct,
+the human-readable output may look like this:
+
+----
+--------------------------------------------------------------------------------
+MP0: Location
+--------------------------------------------------------------------------------
+Compiler                       0    app didn't compile
+testFarthestNorthRandom        10   testFarthestNorthRandom passed
+testFarthestNorthSimple        0    testFarthestNorthSimple failed
+testNextRandomLocationRandom   10   testNextRandomLocationRandom passed
+testNextRandomLocationSimple   10   testNextRandomLocationSimple passed
+testBeenHereRandom             10   testBeenHereRandom passed
+testBeenHereSimple             10   testBeenHereSimple passed
+checkstyle                     0    checkstyle found style issues
+--------------------------------------------------------------------------------
+Total                          50
+--------------------------------------------------------------------------------
+Note that the maximum local grade is 90/100. 10 points will be awarded during
+official grading if you have submitted code that earns at least 40 points by
+Monday, May 20.
+--------------------------------------------------------------------------------
+----
+
+The JSON report may look like this:
+
+----
+{
+  "modules": [
+    {
+      "name": "app",
+      "compiled": false
+    },
+    {
+      "name": "lib",
+      "compiled": true
+    }
+  ],
+  "scores": [
+    {
+      "module": "app",
+      "description": "Compiler",
+      "pointsPossible": 0,
+      "pointsEarned": 0,
+      "explanation": "app didn't compile",
+      "type": "compileError"
+    },
+    {
+      "difficulty": "random",
+      "function": "farthestNorth",
+      "module": "lib",
+      "className": "edu.illinois.cs.cs125.spring2019.mp0.lib.LocatorTest",
+      "testCase": "testFarthestNorthRandom",
+      "passed": true,
+      "pointsPossible": 10,
+      "pointsEarned": 10,
+      "description": "testFarthestNorthRandom",
+      "explanation": "testFarthestNorthRandom passed",
+      "type": "test"
+    },
+    {
+      "difficulty": "simple",
+      "function": "farthestNorth",
+      "module": "lib",
+      "className": "edu.illinois.cs.cs125.spring2019.mp0.lib.LocatorTest",
+      "testCase": "testFarthestNorthSimple",
+      "passed": false,
+      "pointsPossible": 10,
+      "pointsEarned": 0,
+      "failureStackTrace": "java.lang.AssertionError: expected:<-1> but was:<1>\n\t[truncated for brevity]",
+      "description": "testFarthestNorthSimple",
+      "explanation": "testFarthestNorthSimple failed",
+      "type": "test"
+    },
+    {
+      "difficulty": "random",
+      "function": "nextRandomLocation",
+      "module": "lib",
+      "className": "edu.illinois.cs.cs125.spring2019.mp0.lib.LocatorTest",
+      "testCase": "testNextRandomLocationRandom",
+      "passed": true,
+      "pointsPossible": 10,
+      "pointsEarned": 10,
+      "description": "testNextRandomLocationRandom",
+      "explanation": "testNextRandomLocationRandom passed",
+      "type": "test"
+    },
+    {
+      "difficulty": "simple",
+      "function": "nextRandomLocation",
+      "module": "lib",
+      "className": "edu.illinois.cs.cs125.spring2019.mp0.lib.LocatorTest",
+      "testCase": "testNextRandomLocationSimple",
+      "passed": true,
+      "pointsPossible": 10,
+      "pointsEarned": 10,
+      "description": "testNextRandomLocationSimple",
+      "explanation": "testNextRandomLocationSimple passed",
+      "type": "test"
+    },
+    {
+      "difficulty": "random",
+      "function": "beenHere",
+      "module": "lib",
+      "className": "edu.illinois.cs.cs125.spring2019.mp0.lib.LocatorTest",
+      "testCase": "testBeenHereRandom",
+      "passed": true,
+      "pointsPossible": 10,
+      "pointsEarned": 10,
+      "description": "testBeenHereRandom",
+      "explanation": "testBeenHereRandom passed",
+      "type": "test"
+    },
+    {
+      "difficulty": "simple",
+      "function": "beenHere",
+      "module": "lib",
+      "className": "edu.illinois.cs.cs125.spring2019.mp0.lib.LocatorTest",
+      "testCase": "testBeenHereSimple",
+      "passed": true,
+      "pointsPossible": 10,
+      "pointsEarned": 10,
+      "description": "testBeenHereSimple",
+      "explanation": "testBeenHereSimple passed",
+      "type": "test"
+    },
+    {
+      "ran": true,
+      "passed": false,
+      "explanation": "checkstyle found style issues",
+      "description": "checkstyle",
+      "pointsEarned": 0,
+      "pointsPossible": 10,
+      "type": "checkstyle"
+    }
+  ],
+  "git": {
+    "remotes": {
+      "origin": "https://github.com/example/MP0.git"
+    },
+    "user": {
+      "name": "Example Person",
+      "email": "example@users.noreply.github.com"
+    },
+    "head": "7b1df1a592b0959bf402673572fb3079435bf768"
+  },
+  "pointsEarned": 50,
+  "pointsPossible": 70,
+  "assignment": "Spring2019.MP0",
+  "contributors": [
+    "someone@example.edu"
+  ]
+}
+----
+
+All possible JSON properties are described below.
+
+== Output Format
+
+The root JSON object has these properties:
+
+* `pointsEarned` is the total number of points the submission earned, capped if directed
+  by the `maxPoints` configuration property.
+* `pointsPossible` is the total number of points available in all scored components.
+* `assignment` is the value of the `assignment` configuration property or null if that property
+  is not specified.
+* `output` is the textual output from the `checkstyle`, compilation, and test tasks, if
+  the `captureOutput` configuration property is true.
+* `contributors` is an array of identifiers, if identification is enabled in the configuration.
+
+Tags created by the `tag` directive in the `reporting` block appear as properties
+(with either string or integer values).
+
+=== `modules`
+
+This property is an array of objects, one for each tested module/subproject.
+Each object has these properties:
+
+* `name` is the name of the Gradle subproject.
+* `compiled` is whether any test results could be found for that module.
+
+=== `scores`
+
+This property is an array of objects, one for each scoring component
+(i.e. one line in the human-readable table report). Each object has these properties:
+
+* `description` is a short summary of the item (shown on the left in the human-readable table):
+  ** "Compiler" if the item notes a module's failure to compile
+  ** "checkstyle" for the checkstyle report
+  ** The test method name, or friendly name if set in `@Graded`, for test methods
+* `explanation` is an explanation of why credit was or was not given (shown on the right in
+  the human-readable table).
+* `pointsPossible` is the number of points possible to earn from this item.
+* `pointsEarned` is number of points earned: all points possible if the check/test succeeded,
+  or zero if failed.
+* `type` identifies what kind of item this is: `compileError`, `checkstyle`, or `test`.
+
+`compileError` items have this additional property:
+
+* `module` is the name of the Gradle subproject that failed to compile.
+
+`checkstyle` items have these additional properties:
+
+* `ran` is whether `checkstyle` processed the sources without crashing and generated a report.
+* `passed` is whether the report indicated no style violations.
+
+`test` items have these additional properties:
+
+* `module` is the name of the Gradle subproject containing this test.
+* `className` is the fully-qualified Java class name of the test suite.
+* `testCase` is the test method name.
+* `passed` is whether the test completed successfully.
+* `failureStackTrace` is the stack trace of the exception that caused the test case to fail,
+  if `passed` is false.
+
+Tags created by `@Tag` annotations on test methods appear as additional properties
+with string values.
+
+=== `git`
+
+This property, present only if Git integration is enabled, is an object with these properties:
+
+* `remotes` is an object with a property for each Git remote. The property name is the
+  remote ID; the value is the URL.
+* `user` is an object with these properties:
+  ** `name` is the Git user name.
+  ** `email` is the Git email address (which is not necessarily an organization address).
+* `head` is the hash of the `HEAD` commit.
+
+=== `files`
+
+This property, present only in the POST report and only if there are any `includeFiles`
+configuration directives, is an array with an object for each included file.
+Each object has these properties:
+
+* `name` is the unqualified file name.
+* `path` is the full path of the file.
+* `data` is the textual content of the file, if it could be read.
