@@ -245,19 +245,6 @@ The JSON report may look like this:
       "type": "compileError"
     },
     {
-      "difficulty": "random",
-      "function": "farthestNorth",
-      "module": "lib",
-      "className": "edu.illinois.cs.cs125.spring2019.mp0.lib.LocatorTest",
-      "testCase": "testFarthestNorthRandom",
-      "passed": true,
-      "pointsPossible": 10,
-      "pointsEarned": 10,
-      "description": "testFarthestNorthRandom",
-      "explanation": "testFarthestNorthRandom passed",
-      "type": "test"
-    },
-    {
       "difficulty": "simple",
       "function": "farthestNorth",
       "module": "lib",
@@ -269,45 +256,6 @@ The JSON report may look like this:
       "failureStackTrace": "java.lang.AssertionError: expected:<-1> but was:<1>\n\t[truncated for brevity]",
       "description": "testFarthestNorthSimple",
       "explanation": "testFarthestNorthSimple failed",
-      "type": "test"
-    },
-    {
-      "difficulty": "random",
-      "function": "nextRandomLocation",
-      "module": "lib",
-      "className": "edu.illinois.cs.cs125.spring2019.mp0.lib.LocatorTest",
-      "testCase": "testNextRandomLocationRandom",
-      "passed": true,
-      "pointsPossible": 10,
-      "pointsEarned": 10,
-      "description": "testNextRandomLocationRandom",
-      "explanation": "testNextRandomLocationRandom passed",
-      "type": "test"
-    },
-    {
-      "difficulty": "simple",
-      "function": "nextRandomLocation",
-      "module": "lib",
-      "className": "edu.illinois.cs.cs125.spring2019.mp0.lib.LocatorTest",
-      "testCase": "testNextRandomLocationSimple",
-      "passed": true,
-      "pointsPossible": 10,
-      "pointsEarned": 10,
-      "description": "testNextRandomLocationSimple",
-      "explanation": "testNextRandomLocationSimple passed",
-      "type": "test"
-    },
-    {
-      "difficulty": "random",
-      "function": "beenHere",
-      "module": "lib",
-      "className": "edu.illinois.cs.cs125.spring2019.mp0.lib.LocatorTest",
-      "testCase": "testBeenHereRandom",
-      "passed": true,
-      "pointsPossible": 10,
-      "pointsEarned": 10,
-      "description": "testBeenHereRandom",
-      "explanation": "testBeenHereRandom passed",
       "type": "test"
     },
     {
@@ -351,6 +299,8 @@ The JSON report may look like this:
   ]
 }
 ----
+
+Some of the test cases shown in the previous table were removed from the JSON for brevity.
 
 All possible JSON properties are described below.
 
