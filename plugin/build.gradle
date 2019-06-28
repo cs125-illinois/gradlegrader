@@ -51,12 +51,12 @@ apply plugin: 'signing'
 apply plugin: 'maven-publish'
 
 task javadocJar(type: Jar) {
-    classifier 'javadoc'
+    archiveClassifier.set('javadoc')
     from javadoc
 }
 
 task sourceJar(type: Jar) {
-    classifier 'sources'
+    archiveClassifier.set('sources')
     from sourceSets.main.allSource
 }
 
@@ -67,7 +67,13 @@ artifacts {
 }
 
 signing {
-    sign configurations.archives
+    def signTasks = sign configurations.archives
+    signTasks.each { t ->
+        def signatures = t.getSignatures()
+        signatures.removeAll { oneSig ->
+            signatures.count { anotherSig -> oneSig.getClassifier() == anotherSig.getClassifier() } > 1
+        }
+    }
 }
 
 Properties properties = new Properties()
