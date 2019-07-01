@@ -36,7 +36,9 @@ fun main() {
         ReportLoggingConfig()
     }
 
-    val mongo = MongoClients.create(System.getenv("MONGO"))
+    val connectionString = System.getenv("MONGO")
+        ?: throw RuntimeException("MONGO connection string variable not specified")
+    val mongo = MongoClients.create(connectionString)
     val collection = mongo.getDatabase(config.db).getCollection(config.collection)
 
     val server = embeddedServer(Netty, port = config.port) {
