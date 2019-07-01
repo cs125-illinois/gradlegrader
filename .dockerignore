@@ -1,0 +1,14 @@
+/.gradle
+out/
+build/
+test-output/
+gen/
+.idea/
+*.class
+*.swp
+*.swo
+*.iws
+*.iml
+.DS_Store
+/local.properties
+/.env
