@@ -15,6 +15,9 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     implementation 'io.ktor:ktor-server-netty:1.2.1'
     implementation 'org.mongodb:mongodb-driver-sync:3.10.1'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.9.8'
+    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.9.8'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.9.8'
 }
 
 compileKotlin {
