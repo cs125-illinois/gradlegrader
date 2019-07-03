@@ -6,9 +6,6 @@ import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.mongodb.client.MongoClients
 import io.ktor.application.call
-import io.ktor.application.install
-import io.ktor.features.XForwardedHeaderSupport
-import io.ktor.features.origin
 import io.ktor.http.HttpStatusCode
 import io.ktor.request.receiveText
 import io.ktor.response.respond
@@ -22,8 +19,7 @@ import java.io.File
 data class ReportLoggingConfig(
     val port: Int = 8181,
     val db: String = "cs125",
-    val collection: String = "progress",
-    val checkXForwarded: Boolean = false
+    val collection: String = "progress"
 )
 
 fun main() {
@@ -42,7 +38,6 @@ fun main() {
     val collection = mongo.getDatabase(config.db).getCollection(config.collection)
 
     val server = embeddedServer(Netty, port = config.port) {
-        if (config.checkXForwarded) install(XForwardedHeaderSupport)
         routing {
             post("/") {
                 val document = try {
@@ -50,9 +45,7 @@ fun main() {
                 } catch (e: Exception) {
                     return@post call.respond(HttpStatusCode.BadRequest, "Invalid JSON")
                 }
-                document.append("received",
-                    Document("time", System.currentTimeMillis())
-                        .append("ip", call.request.origin.remoteHost))
+                document.append("received", Document("time", System.currentTimeMillis()))
                 collection.insertOne(document)
                 call.response.status(HttpStatusCode.OK)
             }
