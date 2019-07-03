@@ -290,7 +290,7 @@ The JSON report may look like this:
       "pointsPossible": 10,
       "type": "checkstyle"
     },
-    // some items removed for brevity...
+    // some test cases removed for brevity...
   ],
   "git": {
     "remotes": {
@@ -310,8 +310,6 @@ The JSON report may look like this:
   ]
 }
 ----
-
-Some of the test cases shown in the previous table were removed from the JSON for brevity.
 
 All possible JSON properties are described below.
 
