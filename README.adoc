@@ -132,6 +132,9 @@ This block configures a POST request that submits the JSON report.
 The `includeFiles` function sets a list of `Files` (or a file collection) to be read and included
 in a `files` object on the POST JSON report. That information is not included in the local report.
 
+**A simple report logging server is included in this repository.**
+See the Reporting Server section below for how to configure it.
+
 ==== `gradlegrader` &rarr; `reporting` &rarr; `printPretty`
 
 This block configures the pretty grade report table printed to standard output for student
@@ -229,6 +232,7 @@ Monday, May 20.
 
 The JSON report may look like this:
 
+[source, javascript]
 ----
 {
   "modules": [
@@ -285,7 +289,8 @@ The JSON report may look like this:
       "pointsEarned": 0,
       "pointsPossible": 10,
       "type": "checkstyle"
-    }
+    },
+    // some items removed for brevity...
   ],
   "git": {
     "remotes": {
@@ -391,3 +396,20 @@ Each object has these properties:
 * `name` is the unqualified file name.
 * `path` is the full path of the file.
 * `data` is the textual content of the file, if it could be read.
+
+== Reporting Server
+
+The `reportingserver` module in this repository is a simple web server that logs
+POST reports into a MongoDB database.
+Before storing the POSTed document, it adds a `received` subdocument with a `time` property,
+the time of report receipt in milliseconds since the epoch.
+
+To configure the server, create a `config.yaml` file in the working directory of the application,
+i.e. the root of this repository.
+It has these configuration properties:
+
+* `port` (default 8181) is the HTTP port to listen on.
+* `db` (default `cs125`) is the name of the MongoDB database to save reports in.
+* `collection` (default `progress`) is the name of the MongoDB collection to save reports in.
+
+A Docker container can be set up using the `Dockerfile` in the root of this repository.
