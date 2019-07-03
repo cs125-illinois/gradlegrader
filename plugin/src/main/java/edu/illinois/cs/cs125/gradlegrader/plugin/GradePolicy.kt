@@ -24,6 +24,7 @@ open class GradePolicyExtension {
     var maxPoints: Int? = null
     var reporting: ReportingPolicy = ReportingPolicy()
     var subprojects: List<Project>? = null
+    var systemProperties: MutableMap<String, String> = mutableMapOf()
     var vcs: VcsPolicy = VcsPolicy()
 
     fun checkstyle(action: Action<in CheckstylePolicy>) {
@@ -39,6 +40,9 @@ open class GradePolicyExtension {
     }
     fun subprojects(vararg projects: Project) {
         subprojects = projects.asList()
+    }
+    fun systemProperty(name: String, value: String) {
+        systemProperties[name] = value
     }
     fun vcs(action: Action<in VcsPolicy>) {
         action.execute(vcs)

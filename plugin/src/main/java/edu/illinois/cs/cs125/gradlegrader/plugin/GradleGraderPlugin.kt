@@ -126,6 +126,11 @@ class GradleGraderPlugin : Plugin<Project> {
             // Configure the test tasks
             findTestTasks().forEach {
                 gradeTask.listenTo(it)
+                if (!project.hasProperty("grade.ignoreproperties")) {
+                    config.systemProperties.forEach { (prop, value) ->
+                        it.systemProperty(prop, value)
+                    }
+                }
                 it.setProperty("ignoreFailures", true)
                 it.outputs.upToDateWhen { false }
                 gradeTask.gatherTestInfo(it)
