@@ -18,6 +18,7 @@ This Gradle plugin provides autograding for Java-based assignments.
 * Pretty-printed output to standard out for student inspection
 * Multiple reporting options for resulting JSON, including local file dump and remote POST
 * Can require students to commit their work after earning more points
+* Supports Android modules tested by link:http://robolectric.org/[Robolectric]
 * Compatible with Gradle 5
 
 == Installing
@@ -32,7 +33,7 @@ apply plugin: 'edu.illinois.cs.cs125.gradlegrader'
 
 buildscript {
     dependencies {
-        classpath 'com.github.cs125-illinois:gradlegrader:1.0.0'
+        classpath 'com.github.cs125-illinois:gradlegrader:1.0.1'
     }
 }
 
@@ -44,7 +45,7 @@ gradlegrader {
 To allow using GradleGrader annotations in test suites, add the same package as
 a dependency to the project(s) containing graded test suites:
 
-    testImplementation 'com.github.cs125-illinois:gradlegrader:1.0.0'
+    testImplementation 'com.github.cs125-illinois:gradlegrader:1.0.1'
 
 To apply the test dependency to all subprojects, add that to a `subprojects` &rarr;
 `afterEvaluate` &rarr; `dependencies` block in the root project's build script.
@@ -77,6 +78,11 @@ That block has the following properties:
 * `subprojects` (optional) sets the Gradle projects to grade. Each must have a `test`
   or `testDebugUnitTest` task. If this property is not specified, only the project to which
   the plugin is applied is graded.
+
+The `systemProperty` function takes a name and value (both strings) to pass to the test
+JVM(s) as a Java system property (`-D`). The function can be used multiple times to add multiple
+system properties. To skip applying custom system properties, run the grade task with the
+`-Pgrade.ignoreproperties` command-line option.
 
 `gradlegrader` also contains several blocks.
 
