@@ -32,6 +32,9 @@ subprojects:
 apply plugin: 'edu.illinois.cs.cs125.gradlegrader'
 
 buildscript {
+    repositories {
+        mavenCentral()
+    }
     dependencies {
         classpath 'com.github.cs125-illinois:gradlegrader:1.0.1'
     }
@@ -75,7 +78,7 @@ That block has the following properties:
   grade task completes. Setting this to false (i.e. killing the Gradle process) helps
   suppress Gradle spew but produces an IDE warning the first time, which may alarm students.
 * `maxPoints` (optional) sets an overall points cap.
-* `subprojects` (optional) sets the Gradle projects to grade. Each must have a `test`
+* `subprojects` (optional) sets the list of Gradle projects to grade. Each must have a `test`
   or `testDebugUnitTest` task. If this property is not specified, only the project to which
   the plugin is applied is graded.
 
