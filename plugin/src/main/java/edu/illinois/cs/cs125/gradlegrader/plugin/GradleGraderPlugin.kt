@@ -131,6 +131,10 @@ class GradleGraderPlugin : Plugin<Project> {
                         it.systemProperty(prop, value)
                     }
                 }
+                if (project.hasProperty("grade.testfilter")) {
+                    it.setTestNameIncludePatterns(mutableListOf(project.property("grade.testfilter") as String))
+                    it.filter.isFailOnNoMatchingTests = false
+                }
                 it.setProperty("ignoreFailures", true)
                 it.outputs.upToDateWhen { false }
                 gradeTask.gatherTestInfo(it)
