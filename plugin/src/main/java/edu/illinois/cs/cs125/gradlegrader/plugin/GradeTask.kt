@@ -52,6 +52,9 @@ open class GradeTask : DefaultTask() {
     /** Whether the repository is clean of changes. */
     var repoIsClean: Boolean = false
 
+    /** Why configuration of this task failed, if any. */
+    var setupFailReason: Exception? = null
+
     /**
      * Sets up a listener to the specified task's output.
      * @param task the task to listen to
@@ -86,15 +89,22 @@ open class GradeTask : DefaultTask() {
     /**
      * Entry point for the task. Performs the grading.
      */
-    @TaskAction @Suppress("unused")
+    @TaskAction
+    @Suppress("unused")
     fun run() {
         val config = project.extensions.getByType(GradePolicyExtension::class.java)
+        val exitManager = ExitManager(config)
         val documentBuilder = DocumentBuilderFactory.newInstance().apply { isValidating = false; isNamespaceAware = false }.newDocumentBuilder()
         val results = JsonObject()
         val scoringResults = JsonArray()
         var pointsPossible = 0
         var pointsEarned = 0
         var exitProcessWhenDone = false
+
+        // Rethrow the setup error if task configuration failed
+        setupFailReason?.let {
+            throw Exception("GradeTask configuration failed", it)
+        }
 
         // Add custom tags
         config.reporting.tags.forEach {
@@ -303,6 +313,6 @@ open class GradeTask : DefaultTask() {
         }
 
         // Exit as desired
-        ExitManager(config).finished(exitProcessWhenDone)
+        exitManager.finished(exitProcessWhenDone)
     }
 }

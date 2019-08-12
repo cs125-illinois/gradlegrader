@@ -45,25 +45,32 @@ class GradleGraderPlugin : Plugin<Project> {
 
         val checkstyleTask = project.tasks.register("relentlessCheckstyle", RelentlessCheckstyle::class.java).get()
         project.tasks.register("grade", GradeTask::class.java) { gradeTask ->
-            // Depend on all subprojects' cleaning and tests
-            gradeTask.dependsOn(findTestTasks())
-            val cleanTasks = findSubprojects().map { it.tasks.getByName("clean") }
-            gradeTask.dependsOn(cleanTasks)
+            try {
+                // Depend on all subprojects' cleaning and tests
+                gradeTask.dependsOn(findTestTasks())
+                val cleanTasks = findSubprojects().map { it.tasks.getByName("clean") }
+                gradeTask.dependsOn(cleanTasks)
 
-            // Require cleaning before compilation
-            findCompileTasks().forEach { it.mustRunAfter(cleanTasks) }
+                // Require cleaning before compilation
+                findCompileTasks().forEach { it.mustRunAfter(cleanTasks) }
 
-            // Depend on checkstyle
-            val reconfTask = project.tasks.getByName("prepareForGrading")
-            if (config.checkstyle.enabled) {
-                checkstyleTask.mustRunAfter(reconfTask)
-                checkstyleTask.mustRunAfter(cleanTasks)
-                gradeTask.dependsOn(checkstyleTask)
-                gradeTask.gatherCheckstyleInfo(checkstyleTask)
+                // Depend on checkstyle
+                val reconfTask = project.tasks.getByName("prepareForGrading")
+                if (config.checkstyle.enabled) {
+                    checkstyleTask.mustRunAfter(reconfTask)
+                    checkstyleTask.mustRunAfter(cleanTasks)
+                    gradeTask.dependsOn(checkstyleTask)
+                    gradeTask.gatherCheckstyleInfo(checkstyleTask)
+                }
+
+                // Depend on reconfiguration
+                gradeTask.dependsOn(reconfTask)
+            } catch (e: Exception) {
+                // Don't fail the build unless this task is actually going to be run
+                System.err.println("Grading task configuration failed:")
+                e.printStackTrace()
+                gradeTask.setupFailReason = e
             }
-
-            // Depend on reconfiguration
-            gradeTask.dependsOn(reconfTask)
         }
         project.task("prepareForGrading").doLast {
             // Find the grade task (can't realize it with get() because that would configure it too early)
