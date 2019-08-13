@@ -52,9 +52,6 @@ open class GradeTask : DefaultTask() {
     /** Whether the repository is clean of changes. */
     var repoIsClean: Boolean = false
 
-    /** Why configuration of this task failed, if any. */
-    var setupFailReason: Exception? = null
-
     /**
      * Sets up a listener to the specified task's output.
      * @param task the task to listen to
@@ -100,11 +97,6 @@ open class GradeTask : DefaultTask() {
         var pointsPossible = 0
         var pointsEarned = 0
         var exitProcessWhenDone = false
-
-        // Rethrow the setup error if task configuration failed
-        setupFailReason?.let {
-            throw Exception("GradeTask configuration failed", it)
-        }
 
         // Add custom tags
         config.reporting.tags.forEach {

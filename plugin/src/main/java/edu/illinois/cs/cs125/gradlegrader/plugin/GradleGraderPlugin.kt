@@ -33,48 +33,18 @@ class GradleGraderPlugin : Plugin<Project> {
             return config.subprojects ?: listOf(project)
         }
 
-        fun findTestTasks(): List<Test> {
-            return findSubprojects().map { it.getTasksByName("testDebugUnitTest", false).stream().findAny()
-                    .orElse(it.getTasksByName("test", false).stream().findAny()
-                    .orElse(null)) as Test? ?: exitManager.fail("Couldn't find a test task for ${it.name}") }
-        }
-
-        fun findCompileTasks(): List<JavaCompile> {
-            return findSubprojects().flatMap { it.tasks.withType(JavaCompile::class.java) }
-        }
+        val compileTasks = mutableSetOf<JavaCompile>()
+        val testTasks = mutableMapOf<Project, Test>()
 
         val checkstyleTask = project.tasks.register("relentlessCheckstyle", RelentlessCheckstyle::class.java).get()
-        project.tasks.register("grade", GradeTask::class.java) { gradeTask ->
-            try {
-                // Depend on all subprojects' cleaning and tests
-                gradeTask.dependsOn(findTestTasks())
-                val cleanTasks = findSubprojects().map { it.tasks.getByName("clean") }
-                gradeTask.dependsOn(cleanTasks)
-
-                // Require cleaning before compilation
-                findCompileTasks().forEach { it.mustRunAfter(cleanTasks) }
-
-                // Depend on checkstyle
-                val reconfTask = project.tasks.getByName("prepareForGrading")
-                if (config.checkstyle.enabled) {
-                    checkstyleTask.mustRunAfter(reconfTask)
-                    checkstyleTask.mustRunAfter(cleanTasks)
-                    gradeTask.dependsOn(checkstyleTask)
-                    gradeTask.gatherCheckstyleInfo(checkstyleTask)
+        val gradeTask: GradeTask = project.tasks.register("grade", GradeTask::class.java).get()
+        val reconfTask = project.task("prepareForGrading").doLast {
+            // Check projects' test tasks
+            findSubprojects().forEach { subproject ->
+                if (!testTasks.containsKey(subproject)) {
+                    exitManager.fail("Couldn't find a test task for project ${subproject.path}")
                 }
-
-                // Depend on reconfiguration
-                gradeTask.dependsOn(reconfTask)
-            } catch (e: Exception) {
-                // Don't fail the build unless this task is actually going to be run
-                System.err.println("Grading task configuration failed:")
-                e.printStackTrace()
-                gradeTask.setupFailReason = e
             }
-        }
-        project.task("prepareForGrading").doLast {
-            // Find the grade task (can't realize it with get() because that would configure it too early)
-            val gradeTask = project.tasks.getByName("grade") as GradeTask
 
             // Check contributors file
             if (config.identification.enabled) {
@@ -131,7 +101,7 @@ class GradleGraderPlugin : Plugin<Project> {
             }
 
             // Configure the test tasks
-            findTestTasks().forEach {
+            testTasks.values.forEach {
                 gradeTask.listenTo(it)
                 if (!project.hasProperty("grade.ignoreproperties")) {
                     config.systemProperties.forEach { (prop, value) ->
@@ -148,7 +118,7 @@ class GradleGraderPlugin : Plugin<Project> {
             }
 
             // Configure compilation tasks
-            findCompileTasks().forEach {
+            compileTasks.forEach {
                 gradeTask.listenTo(it)
                 it.options.isFailOnError = false
                 it.outputs.upToDateWhen { false }
@@ -156,6 +126,60 @@ class GradleGraderPlugin : Plugin<Project> {
         }.dependsOn(project.tasks.register("clearBuildDir", Delete::class.java) { delTask ->
             delTask.delete = setOf(project.buildDir)
         }.get())
+
+        // Logic that depends on all projects having been evaluated
+        val onAllProjectsReady = {
+            // Require a clean first
+            val cleanTasks = findSubprojects().map { it.tasks.getByName("clean") }
+            gradeTask.dependsOn(cleanTasks)
+
+            // Depend on checkstyle
+            if (config.checkstyle.enabled) {
+                checkstyleTask.mustRunAfter(reconfTask)
+                checkstyleTask.mustRunAfter(cleanTasks)
+                gradeTask.dependsOn(checkstyleTask)
+                gradeTask.gatherCheckstyleInfo(checkstyleTask)
+            }
+
+            // Get subproject tasks
+            findSubprojects().forEach { subproject ->
+                // Clean before compile
+                subproject.tasks.withType(JavaCompile::class.java) { compile ->
+                    compile.mustRunAfter(cleanTasks)
+                    compile.mustRunAfter(reconfTask)
+                    compileTasks.add(compile)
+                }
+
+                // Depend on tests
+                subproject.tasks.withType(Test::class.java) { test ->
+                    if (test.name in setOf("test", "testDebugUnitTest")) {
+                        testTasks[subproject] = test
+                        test.mustRunAfter(cleanTasks)
+                        test.mustRunAfter(reconfTask)
+                        gradeTask.dependsOn(test)
+                    }
+                }
+            }
+        }
+
+        // Finish setup once all projects have been evaluated and tasks have been created
+        project.afterEvaluate {
+            gradeTask.dependsOn(reconfTask)
+            val evalPending = findSubprojects().toMutableList()
+            evalPending.remove(project)
+            if (evalPending.size == 0) {
+                onAllProjectsReady()
+            } else {
+                evalPending.toList().forEach { subproject ->
+                    subproject.afterEvaluate {
+                        evalPending.remove(subproject)
+                        if (evalPending.size == 0) {
+                            onAllProjectsReady()
+                        }
+                    }
+                }
+            }
+        }
     }
 
 }
