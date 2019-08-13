@@ -36,7 +36,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.github.cs125-illinois:gradlegrader:1.0.1'
+        classpath 'com.github.cs125-illinois:gradlegrader:1.0.4'
     }
 }
 
@@ -48,7 +48,7 @@ gradlegrader {
 To allow using GradleGrader annotations in test suites, add the same package as
 a dependency to the project(s) containing graded test suites:
 
-    testImplementation 'com.github.cs125-illinois:gradlegrader:1.0.1'
+    testImplementation 'com.github.cs125-illinois:gradlegrader:1.0.4'
 
 To apply the test dependency to all subprojects, add that to a `subprojects` &rarr;
 `afterEvaluate` &rarr; `dependencies` block in the root project's build script.
