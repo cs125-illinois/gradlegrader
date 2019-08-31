@@ -1,7 +1,7 @@
 !gradle-wrapper.jar
 /.gradle
 /out/
-/build/
+build/
 /test-output/
 .idea/
 /node_modules

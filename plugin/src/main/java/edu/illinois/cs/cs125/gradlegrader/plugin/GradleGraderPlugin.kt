@@ -2,6 +2,10 @@
 
 package edu.illinois.cs.cs125.gradlegrader.plugin
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
+import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.fasterxml.jackson.module.kotlin.readValue
 import com.google.gson.Gson
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.lib.Constants
@@ -35,6 +39,7 @@ class GradleGraderPlugin : Plugin<Project> {
 
         val compileTasks = mutableSetOf<JavaCompile>()
         val testTasks = mutableMapOf<Project, Test>()
+        var currentCheckpoint: String? = null
 
         val checkstyleTask = project.tasks.register("relentlessCheckstyle", RelentlessCheckstyle::class.java).get()
         val gradeTask: GradeTask = project.tasks.register("grade", GradeTask::class.java).get()
@@ -111,6 +116,8 @@ class GradleGraderPlugin : Plugin<Project> {
                 if (project.hasProperty("grade.testfilter")) {
                     it.setTestNameIncludePatterns(mutableListOf(project.property("grade.testfilter") as String))
                     it.filter.isFailOnNoMatchingTests = false
+                } else if (currentCheckpoint != null) {
+                    config.checkpointing.testConfigureAction.accept(currentCheckpoint!!, it)
                 }
                 it.setProperty("ignoreFailures", true)
                 it.outputs.upToDateWhen { false }
@@ -165,6 +172,11 @@ class GradleGraderPlugin : Plugin<Project> {
         // Finish setup once all projects have been evaluated and tasks have been created
         project.afterEvaluate {
             gradeTask.dependsOn(reconfTask)
+            if (config.checkpointing.yamlFile != null) {
+                val configLoader = ObjectMapper(YAMLFactory()).also { it.registerModule(KotlinModule()) }
+                val checkpointConfig = configLoader.readValue<CheckpointConfig>(config.checkpointing.yamlFile!!)
+                currentCheckpoint = checkpointConfig.checkpoint
+            }
             val evalPending = findSubprojects().toMutableList()
             evalPending.remove(project)
             if (evalPending.size == 0) {

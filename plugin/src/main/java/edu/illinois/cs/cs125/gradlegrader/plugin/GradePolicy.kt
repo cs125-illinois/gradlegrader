@@ -7,7 +7,9 @@ import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.specs.Spec
+import org.gradle.api.tasks.testing.Test
 import java.io.File
+import java.util.function.BiConsumer
 
 /**
  * Gradle extension to hold the grading settings.
@@ -18,6 +20,7 @@ open class GradePolicyExtension {
 
     var assignment: String? = null
     var captureOutput: Boolean = false
+    var checkpointing: CheckpointPolicy = CheckpointPolicy()
     var checkstyle: CheckstylePolicy = CheckstylePolicy()
     var identification: IdentificationPolicy = IdentificationPolicy()
     var keepDaemon: Boolean = true
@@ -27,6 +30,9 @@ open class GradePolicyExtension {
     var systemProperties: MutableMap<String, String> = mutableMapOf()
     var vcs: VcsPolicy = VcsPolicy()
 
+    fun checkpoint(action: Action<in CheckpointPolicy>) {
+        action.execute(checkpointing)
+    }
     fun checkstyle(action: Action<in CheckstylePolicy>) {
         checkstyle.enabled = true
         action.execute(checkstyle)
@@ -48,6 +54,24 @@ open class GradePolicyExtension {
         action.execute(vcs)
     }
 
+}
+
+/**
+ * Class to hold checkpoint (sub-assignment) settings.
+ */
+open class CheckpointPolicy {
+    var yamlFile: File? = null
+    var testConfigureAction: BiConsumer<String, Test> = BiConsumer { _, _ -> }
+
+    fun configureTests(action: (String, Test) -> Unit) {
+        testConfigureAction = BiConsumer { checkpoint, test -> action(checkpoint, test) }
+    }
+    fun configureTests(action: BiConsumer<String, Test>) {
+        testConfigureAction = action
+    }
+    fun configureTests(action: Closure<Void>) {
+        testConfigureAction = BiConsumer { checkpoint, test -> action.call(checkpoint, test) }
+    }
 }
 
 /**

@@ -28,11 +28,17 @@ dependencies {
     implementation 'org.apache.httpcomponents:httpclient:4.5.8'
     implementation 'org.apache.commons:commons-text:1.6'
     implementation 'org.eclipse.jgit:org.eclipse.jgit:5.0.2.201807311906-r'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.9.8'
+    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.9.8'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.9.8'
     shadow "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     shadow 'com.google.code.gson:gson:2.8.5'
     shadow 'org.apache.httpcomponents:httpclient:4.5.8'
     shadow 'org.apache.commons:commons-text:1.6'
     shadow 'org.eclipse.jgit:org.eclipse.jgit:5.0.2.201807311906-r'
+    shadow 'com.fasterxml.jackson.core:jackson-databind:2.9.8'
+    shadow 'com.fasterxml.jackson.module:jackson-module-kotlin:2.9.8'
+    shadow 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.9.8'
 }
 
 compileKotlin {
@@ -87,7 +93,7 @@ publishing {
             customizePom(pom)
             groupId 'com.github.cs125-illinois'
             artifactId 'gradlegrader'
-            version '1.0.4'
+            version '1.0.5'
 
             from components.java
 
