@@ -16,3 +16,4 @@ build/
 grade.json
 .score.json
 /config.yaml
+/email.txt
