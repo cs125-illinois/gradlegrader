@@ -8,18 +8,12 @@ plugins {
     kotlin("kapt")
     application
     id("com.github.johnrengelman.shadow")
-}
-tasks.test {
-    useJUnitPlatform()
-    systemProperties["logback.configurationFile"] = File(projectDir, "src/test/resources/logback-test.xml").absolutePath
-    environment("MONGO", "mongodb://localhost:27017/testing")
+    id("com.palantir.docker") version "0.22.1"
 }
 dependencies {
-    val ktorVersion = "1.2.4"
-
     kapt("com.squareup.moshi:moshi-kotlin-codegen:1.8.0")
-
     implementation(kotlin("stdlib"))
+    val ktorVersion = "1.2.4"
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
     implementation("org.mongodb:mongodb-driver:3.11.0")
     implementation("com.squareup.moshi:moshi:1.8.0")
@@ -34,12 +28,22 @@ dependencies {
     testImplementation("io.kotlintest:kotlintest-assertions-ktor:$kotlintestVersion")
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
 }
+val mainClass = "edu.illinois.cs.cs125.gradlegrader.server.MainKt"
 application {
-    mainClassName = "edu.illinois.cs.cs125.gradlegrader.server.MainKt"
+    mainClassName = mainClass
+}
+docker {
+    name = "cs125/gradlegrader"
+    files(tasks["shadowJar"].outputs)
+}
+tasks.test {
+    useJUnitPlatform()
+    systemProperties["logback.configurationFile"] = File(projectDir, "src/test/resources/logback-test.xml").absolutePath
+    environment("MONGO", "mongodb://localhost:27017/testing")
 }
 tasks.jar {
     manifest {
-        attributes["Main-Class"] = "edu.illinois.cs.cs125.gradlegrader.server.MainKt"
+        attributes["Main-Class"] = mainClass
     }
 }
 task("createProperties") {
