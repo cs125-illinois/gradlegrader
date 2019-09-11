@@ -130,15 +130,15 @@ class GradleGraderPlugin : Plugin<Project> {
                 it.options.isFailOnError = false
                 it.outputs.upToDateWhen { false }
             }
-        }.dependsOn(project.tasks.register("clearBuildDir", Delete::class.java) { delTask ->
-            delTask.delete = setOf(project.buildDir)
-        }.get())
+        }
 
         // Logic that depends on all projects having been evaluated
         val onAllProjectsReady = {
-            // Require a clean first
             val cleanTasks = findSubprojects().map { it.tasks.getByName("clean") }
-            gradeTask.dependsOn(cleanTasks)
+            if (config.forceClean) {
+                // Require a clean first
+                gradeTask.dependsOn(cleanTasks)
+            }
 
             // Depend on checkstyle
             if (config.checkstyle.enabled) {
@@ -171,6 +171,11 @@ class GradleGraderPlugin : Plugin<Project> {
 
         // Finish setup once all projects have been evaluated and tasks have been created
         project.afterEvaluate {
+            if (config.forceClean) {
+                reconfTask.dependsOn(project.tasks.register("clearBuildDir", Delete::class.java) { delTask ->
+                    delTask.delete = setOf(project.buildDir)
+                }.get())
+            }
             gradeTask.dependsOn(reconfTask)
             if (config.checkpointing.yamlFile != null) {
                 val configLoader = ObjectMapper(YAMLFactory()).also { it.registerModule(KotlinModule()) }

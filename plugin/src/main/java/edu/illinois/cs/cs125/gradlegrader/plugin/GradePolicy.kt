@@ -22,6 +22,7 @@ open class GradePolicyExtension {
     var captureOutput: Boolean = false
     var checkpointing: CheckpointPolicy = CheckpointPolicy()
     var checkstyle: CheckstylePolicy = CheckstylePolicy()
+    var forceClean: Boolean = true
     var identification: IdentificationPolicy = IdentificationPolicy()
     var keepDaemon: Boolean = true
     var maxPoints: Int? = null
