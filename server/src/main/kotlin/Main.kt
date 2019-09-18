@@ -78,6 +78,7 @@ class Status {
     var statusCount: Int = 0
     var uploadCount: Int = 0
     var failureCount: Int = 0
+    var lastUpload: Instant? = null
 }
 val currentStatus = Status()
 
@@ -97,6 +98,7 @@ fun Application.gradlegrader() {
     install(XForwardedHeaderSupport)
     install(CORS) {
         anyHost()
+        allowNonSimpleContentTypes = true
     }
     install(ContentNegotiation) {
         moshi {
@@ -116,6 +118,7 @@ fun Application.gradlegrader() {
                         .append("receivedIP", BsonString(call.request.origin.remoteHost))
                         .append("receivedSemester", BsonString(configuration[TopLevel.semester])))
                 currentStatus.uploadCount++
+                currentStatus.lastUpload = Instant.now()
                 call.respond(HttpStatusCode.OK)
             } catch (e: Exception) {
                 logger.warn { "couldn't save upload: $e" }

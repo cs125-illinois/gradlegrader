@@ -1,7 +1,7 @@
 import java.util.*
 
 group = "edu.illinois.cs.cs125"
-version = "2019.9.0"
+version = "2019.9.1"
 
 plugins {
     kotlin("jvm")
@@ -19,8 +19,8 @@ dependencies {
     implementation("com.squareup.moshi:moshi:1.8.0")
     implementation("com.ryanharter.ktor:ktor-moshi:1.0.1")
     implementation("ch.qos.logback:logback-classic:1.2.3")
-    implementation("com.uchuhimo:konf-core:0.17.0")
-    implementation("com.uchuhimo:konf-yaml:0.17.0")
+    implementation("com.uchuhimo:konf-core:0.20.0")
+    implementation("com.uchuhimo:konf-yaml:0.20.0")
     implementation("io.github.microutils:kotlin-logging:1.7.6")
 
     val kotlintestVersion = "3.4.1"
@@ -34,6 +34,8 @@ application {
 }
 docker {
     name = "cs125/gradlegrader"
+    tag("latest", "cs125/gradlegrader:latest")
+    tag(version.toString(), "cs125/gradlegrader:$version")
     files(tasks["shadowJar"].outputs)
 }
 tasks.test {
