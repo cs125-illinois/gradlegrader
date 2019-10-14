@@ -1,7 +1,7 @@
 import java.util.*
 
 group = "edu.illinois.cs.cs125"
-version = "2019.9.1"
+version = "2019.10.1"
 
 plugins {
     kotlin("jvm")
@@ -13,9 +13,9 @@ plugins {
 dependencies {
     kapt("com.squareup.moshi:moshi-kotlin-codegen:1.8.0")
     implementation(kotlin("stdlib"))
-    val ktorVersion = "1.2.4"
+    val ktorVersion = "1.2.5"
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
-    implementation("org.mongodb:mongodb-driver:3.11.0")
+    implementation("org.mongodb:mongodb-driver:3.11.1")
     implementation("com.squareup.moshi:moshi:1.8.0")
     implementation("com.ryanharter.ktor:ktor-moshi:1.0.1")
     implementation("ch.qos.logback:logback-classic:1.2.3")
@@ -23,7 +23,7 @@ dependencies {
     implementation("com.uchuhimo:konf-yaml:0.20.0")
     implementation("io.github.microutils:kotlin-logging:1.7.6")
 
-    val kotlintestVersion = "3.4.1"
+    val kotlintestVersion = "3.4.2"
     testImplementation("io.kotlintest:kotlintest-runner-junit5:$kotlintestVersion")
     testImplementation("io.kotlintest:kotlintest-assertions-ktor:$kotlintestVersion")
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
