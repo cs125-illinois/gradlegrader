@@ -55,14 +55,16 @@ class GradleGraderPlugin : Plugin<Project> {
             if (config.identification.enabled) {
                 val txtFile = config.identification.txtFile!!
                 if (!txtFile.exists()) {
-                    exitManager.fail("Missing identification file: ${txtFile.absolutePath}")
+                    exitManager.fail("Missing contributor identification file: ${txtFile.absolutePath}")
                 }
                 val partners = Files.readAllLines(txtFile.toPath()).filter { it.isNotBlank() }
                 if (!config.identification.countLimit.isSatisfiedBy(partners.size)) {
-                    exitManager.fail("Invalid number of contributors (${partners.size}) in identification file: ${txtFile.absolutePath}")
+                    exitManager.fail(config.identification.message ?:
+                        "Invalid number of contributors (${partners.size}) in identification file: ${txtFile.absolutePath}")
                 }
                 partners.forEach {
-                    if (!config.identification.validate.isSatisfiedBy(it)) exitManager.fail("Invalid contributor format: $it")
+                    if (!config.identification.validate.isSatisfiedBy(it)) exitManager.fail(config.identification.message ?:
+                        "Invalid contributor format: $it")
                 }
                 gradeTask.contributors = partners
             }
@@ -71,7 +73,7 @@ class GradleGraderPlugin : Plugin<Project> {
             if (config.vcs.git) {
                 val gitRepo = try {
                     FileRepositoryBuilder().setMustExist(true).addCeilingDirectory(File(".")).findGitDir().build()
-                } catch (_: Exception) { exitManager.fail("Grader Git integration is enabled but no Git root was found") }
+                } catch (_: Exception) { exitManager.fail("Grader Git integration is enabled but the project isn't a Git repository.") }
                 gradeTask.gitConfig = gitRepo.config
                 val lastCommit = gitRepo.resolve(Constants.HEAD).name
                 gradeTask.lastCommitId = lastCommit

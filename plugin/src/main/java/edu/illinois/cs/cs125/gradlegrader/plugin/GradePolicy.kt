@@ -102,6 +102,7 @@ open class IdentificationPolicy {
     var txtFile: File? = null
     var validate: Spec<String> = Spec { true }
     var countLimit: Spec<Int> = Spec { it == 1 }
+    var message: String? = null
 }
 
 /**

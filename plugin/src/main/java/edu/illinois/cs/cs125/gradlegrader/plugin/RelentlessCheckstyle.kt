@@ -19,7 +19,8 @@ open class RelentlessCheckstyle : Checkstyle() {
                 // It wasn't just a checkstyle failure
                 throw RuntimeException(e)
             }
-            System.err.println("Checkstyle crashed")
+            System.err.print("Checkstyle crashed: ")
+            e.printStackTrace(System.err)
             // The checkstyle task leaks the file handle when it crashes.
             // This scenario can be detected by looking for a zero-byte results XML file.
         }

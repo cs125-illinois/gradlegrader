@@ -17,7 +17,7 @@ repositories {
 dependencies {
     compileOnly gradleApi()
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    implementation 'com.google.code.gson:gson:2.8.5'
+    implementation 'com.google.code.gson:gson:2.8.6'
     implementation 'org.apache.httpcomponents:httpclient:4.5.10'
     implementation 'org.apache.commons:commons-text:1.8'
     implementation 'org.eclipse.jgit:org.eclipse.jgit:5.5.0.201909110433-r'
@@ -78,7 +78,7 @@ publishing {
             customizePom(pom)
             groupId 'com.github.cs125-illinois'
             artifactId 'gradlegrader'
-            version '2019.1.0'
+            version '2019.1.2'
 
             from components.java
 
