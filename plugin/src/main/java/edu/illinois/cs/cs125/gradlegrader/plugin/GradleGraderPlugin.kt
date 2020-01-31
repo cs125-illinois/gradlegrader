@@ -78,13 +78,14 @@ class GradleGraderPlugin : Plugin<Project> {
                 val lastCommit = gitRepo.resolve(Constants.HEAD).name
                 gradeTask.lastCommitId = lastCommit
                 if (config.vcs.requireCommit) {
-                    var scoreInfo = VcsScoreInfo()
+                    var scoreInfo = VcsScoreInfo(listOf())
                     try {
                         scoreInfo = Gson().fromJson(project.file("config/.score.json").readText(), VcsScoreInfo::class.java)
                     } catch (ignored: Exception) { }
+                    val checkpointScoreInfo = scoreInfo.getCheckpointInfo(currentCheckpoint) ?: VcsCheckpointScoreInfo(currentCheckpoint)
                     val status = Git.open(gitRepo.workTree).status().call()
                     val clean = (status.added.size + status.changed.size + status.removed.size + status.modified.size + status.missing.size) == 0
-                    if (scoreInfo.increased && scoreInfo.lastSeenCommit == lastCommit && !clean) {
+                    if (checkpointScoreInfo.increased && checkpointScoreInfo.lastSeenCommit == lastCommit && !clean) {
                         exitManager.fail("The autograder will not run until you commit the changes that increased your score.")
                     }
                     gradeTask.scoreInfo = scoreInfo
@@ -183,6 +184,7 @@ class GradleGraderPlugin : Plugin<Project> {
                 val configLoader = ObjectMapper(YAMLFactory()).also { it.registerModule(KotlinModule()) }
                 val checkpointConfig = configLoader.readValue<CheckpointConfig>(config.checkpointing.yamlFile!!)
                 currentCheckpoint = checkpointConfig.checkpoint
+                gradeTask.currentCheckpoint = currentCheckpoint
             }
             val evalPending = findSubprojects().toMutableList()
             evalPending.remove(project)

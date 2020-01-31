@@ -49,6 +49,9 @@ open class GradeTask : DefaultTask() {
     /** Score-vs.-commit tracking information, or null if commit forcing is off. */
     var scoreInfo: VcsScoreInfo? = null
 
+    /** Current checkpoint ID, or null if checkpointing is off. */
+    var currentCheckpoint: String? = null
+
     /** Whether the repository is clean of changes. */
     var repoIsClean: Boolean = false
 
@@ -224,16 +227,18 @@ open class GradeTask : DefaultTask() {
         // Note score for commit requirement
         var needsCommit = false
         if (config.vcs.requireCommit && lastCommitId?.isNotEmpty() == true) {
-            needsCommit = (pointsEarned > scoreInfo!!.maxScore) && !repoIsClean
-            val newScoreInfo = VcsScoreInfo(lastCommitId, max(pointsEarned, scoreInfo!!.maxScore), needsCommit)
+            val checkpointScoreInfo = scoreInfo!!.getCheckpointInfo(currentCheckpoint) ?: VcsCheckpointScoreInfo(currentCheckpoint)
+            needsCommit = (pointsEarned > checkpointScoreInfo.maxScore) && !repoIsClean
+            val newScoreInfo = VcsCheckpointScoreInfo(currentCheckpoint, lastCommitId, max(pointsEarned, checkpointScoreInfo.maxScore), needsCommit)
             project.file("config").mkdir()
-            project.file("config/.score.json").writeText(Gson().toJson(newScoreInfo))
+            project.file("config/.score.json").writeText(Gson().toJson(scoreInfo!!.withCheckpointInfoSet(newScoreInfo)))
         }
 
         // Add final properties
         results.addProperty("pointsEarned", pointsEarned)
         results.addProperty("pointsPossible", pointsPossible)
         results.addProperty("assignment", config.assignment)
+        currentCheckpoint?.let { results.addProperty("checkpoint", it) }
         if (config.identification.enabled) {
             val contribArray = JsonArray()
             contributors!!.forEach { contribArray.add(it) }
@@ -272,7 +277,8 @@ open class GradeTask : DefaultTask() {
                 println(line)
             }
             if (needsCommit) {
-                println("CONGRATULATIONS: Your changes increased your score from ${scoreInfo!!.maxScore} to $pointsEarned!")
+                println("CONGRATULATIONS: Your changes increased your score from " +
+                        "${scoreInfo!!.getCheckpointInfo(currentCheckpoint)?.maxScore ?: 0} to $pointsEarned!")
                 println("Commit your work right away! The autograder will not run again until you do.")
                 println(line)
             }
