@@ -80,7 +80,9 @@ class GradleGraderPlugin : Plugin<Project> {
                 if (config.vcs.requireCommit) {
                     var scoreInfo = VcsScoreInfo(listOf())
                     try {
-                        scoreInfo = Gson().fromJson(project.file("config/.score.json").readText(), VcsScoreInfo::class.java)
+                        val loadedInfo = Gson().fromJson(project.file("config/.score.json").readText(), VcsScoreInfo::class.java)
+                        @Suppress("SENSELESS_COMPARISON") // Possible for checkpoints to be null if loaded by Gson
+                        if (loadedInfo.checkpoints != null) scoreInfo = loadedInfo
                     } catch (ignored: Exception) { }
                     val checkpointScoreInfo = scoreInfo.getCheckpointInfo(currentCheckpoint) ?: VcsCheckpointScoreInfo(currentCheckpoint)
                     val status = Git.open(gitRepo.workTree).status().call()
