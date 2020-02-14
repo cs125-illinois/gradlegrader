@@ -40,7 +40,7 @@ import org.bson.BsonString
 private val logger = KotlinLogging.logger {}
 
 val VERSION: String = Properties().also {
-    it.load((object : Any() {}).javaClass.getResourceAsStream("/version.properties"))
+    it.load((object {}).javaClass.getResourceAsStream("/edu.illinois.cs.cs125.gradlegrader.server.version"))
 }.getProperty("version")
 
 const val NAME = "gradlegrader"

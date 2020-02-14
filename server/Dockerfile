@@ -1,4 +1,4 @@
-FROM openjdk:10.0.2-13-jre-slim
+FROM openjdk:13-alpine
 WORKDIR /
 COPY *.jar gradlegrader.jar
 CMD [ "java", "-jar", "gradlegrader.jar" ]
