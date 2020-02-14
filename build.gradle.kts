@@ -4,13 +4,15 @@ plugins {
     val kotlinVersion = "1.3.61"
     kotlin("jvm") version kotlinVersion apply false
     kotlin("kapt") version kotlinVersion apply false
-    id("com.github.johnrengelman.shadow") version "5.1.0"
-    id("com.github.ben-manes.versions") version "0.26.0"
+    id("com.github.johnrengelman.shadow") version "5.2.0"
+    id("org.jmailen.kotlinter") version "2.3.0" apply false
+    id("com.github.ben-manes.versions") version "0.27.0"
 }
 allprojects {
     repositories {
-        jcenter()
         mavenCentral()
+        jcenter()
+        maven(url = "https://jitpack.io")
     }
     tasks.withType<KotlinCompile> {
         val javaVersion = JavaVersion.VERSION_1_8.toString()
@@ -38,4 +40,5 @@ tasks.dependencyUpdates {
             }
         }
     }
+    gradleReleaseChannel = "current"
 }

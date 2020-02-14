@@ -27,14 +27,14 @@ import io.ktor.routing.post
 import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
+import java.io.File
+import java.net.URI
+import java.time.Instant
+import java.util.Properties
 import mu.KotlinLogging
 import org.bson.BsonDateTime
 import org.bson.BsonDocument
 import org.bson.BsonString
-import java.io.File
-import java.net.URI
-import java.time.Instant
-import java.util.*
 
 @Suppress("UNUSED")
 private val logger = KotlinLogging.logger {}
@@ -139,7 +139,7 @@ fun main() {
     val uri = URI(configuration[TopLevel.http])
     assert(uri.scheme == "http")
 
-    embeddedServer(Netty, host=uri.host, port=uri.port, module=Application::gradlegrader).start(wait = true)
+    embeddedServer(Netty, host = uri.host, port = uri.port, module = Application::gradlegrader).start(wait = true)
 }
 
 @Suppress("unused")
