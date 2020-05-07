@@ -36,7 +36,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.github.cs125-illinois:gradlegrader:1.0.4'
+        classpath 'com.github.cs125-illinois:gradlegrader:2020.1.0'
     }
 }
 
@@ -48,7 +48,7 @@ gradlegrader {
 To allow using GradleGrader annotations in test suites, add the same package as
 a dependency to the project(s) containing graded test suites:
 
-    testImplementation 'com.github.cs125-illinois:gradlegrader:1.0.4'
+    testImplementation 'com.github.cs125-illinois:gradlegrader:2020.1.0'
 
 To apply the test dependency to all subprojects, add that to a `subprojects` &rarr;
 `afterEvaluate` &rarr; `dependencies` block in the root project's build script.
@@ -74,6 +74,8 @@ That block has the following properties:
 * `captureOutput` (default false) sets whether to record the textual output of
   the `checkstyle`, compile, and test tasks. The output is combined and written to the
   `output` property of the final JSON object.
+* `forceClean` (default true) sets whether to clean all graded subprojects before grading,
+  i.e. require a completely fresh compilation.
 * `keepDaemon` (default true) sets whether to leave the Gradle daemon running after the
   grade task completes. Setting this to false (i.e. killing the Gradle process) helps
   suppress Gradle spew but produces an IDE warning the first time, which may alarm students.
@@ -88,6 +90,20 @@ system properties. To skip applying custom system properties, run the grade task
 `-Pgrade.ignoreproperties` command-line option.
 
 `gradlegrader` also contains several blocks.
+
+=== `gradlegrader` &rarr; `checkpoint`
+
+This block allows you to manipulate test takes so that you can grade one "checkpoint" of a
+large project at a time.
+
+* `yamlFile` (required to enable checkpointing) is a `File` that specifies where to find the
+  student's checkpoint selection. This file must have at least a `checkpoint` property.
+* `testConfigureAction` (default no-op) is a `BiConsumer` that will be called for each test task,
+  passed the currently selected checkpoint name and a test task to configure with it. You could
+  use this to apply a test name include pattern based on the current checkpoint, for example.
+
+You can also specify the test configuration action by passing an action/closure to the
+`configureTests` function.
 
 === `gradlegrader` &rarr; `checkstyle`
 
@@ -114,6 +130,8 @@ This block sets the student identification policy.
   `{ email +++->+++ email.endsWith('@university.edu') }`.
 * `countLimit` (defaults to must-be-one) is a `Spec` that the number of provided student identifiers
   must pass.
+* `message` (optional) is a string to specify a custom error message for invalid contributor formats
+  or counts.
 
 === `gradlegrader` &rarr; `reporting`
 
@@ -158,7 +176,8 @@ This block enables VCS (currently only Git) integration.
 * `requireCommit` (default false) requires students to commit their changes after their score
   increases. When this is enabled and the student's best score increases, a note about committing
   is included in the pretty-printed table (if enabled) and the grade task will refuse to run
-  again until the changes are committed.
+  again until the changes are committed. If checkpointing is enabled, checkpoint-specific best
+  scores will be maintained.
 
 == Example
 
@@ -325,6 +344,8 @@ The root JSON object has these properties:
 * `pointsPossible` is the total number of points available in all scored components.
 * `assignment` is the value of the `assignment` configuration property or null if that property
   is not specified.
+* `checkpoint` is the current checkpoint name from the student's checkpoint selection
+  YAML file, if checkpointing is enabled.
 * `output` is the textual output from the `checkstyle`, compilation, and test tasks, if
   the `captureOutput` configuration property is true.
 * `contributors` is an array of identifiers, if identification is enabled in the configuration.
@@ -400,17 +421,21 @@ Each object has these properties:
 
 == Reporting Server
 
-The `reportingserver` module in this repository is a simple web server that logs
-POST reports into a MongoDB database.
-Before storing the POSTed document, it adds a `received` subdocument with a `time` property,
-the time of report receipt in milliseconds since the epoch.
+The `server` module in this repository is a simple web server that logs POST reports
+into a MongoDB database. Before storing the POSTed document, it adds these properties:
 
-To configure the server, create a `config.yaml` file in the working directory of the application,
-i.e. the root of this repository.
-It has these configuration properties:
+* `receivedVersion` (string) is the current reporting server version
+* `receivedTime` (date/time) is the time the report was received
+* `receivedIP` (string) is the IP of the host submitting the POST report
+* `receivedSemester` (string) is the configured semester
 
-* `port` (default 8181) is the HTTP port to listen on.
-* `db` (default `cs125`) is the name of the MongoDB database to save reports in.
-* `collection` (default `progress`) is the name of the MongoDB collection to save reports in.
+The server can be configured with environment variables or a `config.yaml` file from
+the working directory of the application. It has these configuration options:
 
-A Docker container can be set up using the `Dockerfile` in the root of this repository.
+* `mongo` (required) is the MongoDB connection string.
+* `mongoCollection` (default `gradlegrader`) is the MongoDB collection to save
+  reports in.
+* `http` (default `http://0.0.0.0:8888`) is the host and port to listen on.
+* `semester` (optional) is the semester to tag reports with.
+
+A Docker container can be set up using the `Dockerfile` in the `server` module.
