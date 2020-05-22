@@ -29,8 +29,6 @@ subprojects:
 
 [source,groovy]
 ----
-apply plugin: 'edu.illinois.cs.cs125.gradlegrader'
-
 buildscript {
     repositories {
         mavenCentral()
@@ -39,6 +37,8 @@ buildscript {
         classpath 'com.github.cs125-illinois:gradlegrader:2020.1.0'
     }
 }
+
+apply plugin: 'edu.illinois.cs.cs125.gradlegrader'
 
 gradlegrader {
     // Grading configuration goes here - see the Configuring section below
@@ -52,6 +52,27 @@ a dependency to the project(s) containing graded test suites:
 
 To apply the test dependency to all subprojects, add that to a `subprojects` &rarr;
 `afterEvaluate` &rarr; `dependencies` block in the root project's build script.
+
+If you are using a Kotlin buildscript or would like to use the new `plugins` block
+to apply the plugin, you will need to fill in the settings script (`settings.gradle`)
+to tell Gradle where to find our artifact:
+
+[source,kotlin]
+----
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.namespace == "edu.illinois.cs.cs125" && requested.version != null) {
+                useModule("com.github.cs125-illinois:${requested.id.name}:${requested.version}")
+            }
+        }
+    }
+}
+----
 
 == Writing Tests
 
