@@ -122,12 +122,12 @@ open class GradeTask : DefaultTask() {
                 compiled = true
                 val xml = documentBuilder.parse(file)
                 val className = xml.documentElement.getAttribute("name")
-                val testSuiteClass = loader.loadClass(className)
+                val testSuiteClass = loader.loadClass(className)!!
                 val testcaseList = xml.documentElement.getElementsByTagName("testcase")
                 (0 until testcaseList.length).map { n -> testcaseList.item(n) as Element }.forEach examineMethod@{
                     val testName = it.getAttribute("name")
                     val methodName = testName.substringBefore('[').substringBefore('(')
-                    val testMethod = testSuiteClass!!.getMethod(methodName)
+                    val testMethod = testSuiteClass.methods.first { m -> m.name == methodName }
                     val gradedAnnotation = testMethod.getDeclaredAnnotation(Graded::class.java) ?: return@examineMethod
                     val methodResults = JsonObject()
                     testMethod.getAnnotationsByType(Tag::class.java).forEach { tag -> methodResults.addProperty(tag.name, tag.value) }
