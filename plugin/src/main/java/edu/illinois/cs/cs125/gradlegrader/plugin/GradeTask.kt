@@ -125,14 +125,15 @@ open class GradeTask : DefaultTask() {
                 val testSuiteClass = loader.loadClass(className)
                 val testcaseList = xml.documentElement.getElementsByTagName("testcase")
                 (0 until testcaseList.length).map { n -> testcaseList.item(n) as Element }.forEach examineMethod@{
-                    val methodName = it.getAttribute("name")
+                    val testName = it.getAttribute("name")
+                    val methodName = testName.substringBefore('[').substringBefore('(')
                     val testMethod = testSuiteClass!!.getMethod(methodName)
                     val gradedAnnotation = testMethod.getDeclaredAnnotation(Graded::class.java) ?: return@examineMethod
                     val methodResults = JsonObject()
                     testMethod.getAnnotationsByType(Tag::class.java).forEach { tag -> methodResults.addProperty(tag.name, tag.value) }
                     methodResults.addProperty("module", task.project.name)
                     methodResults.addProperty("className", className)
-                    methodResults.addProperty("testCase", methodName)
+                    methodResults.addProperty("testCase", testName)
                     val passed = it.getElementsByTagName("failure").length == 0 && it.getElementsByTagName("skipped").length == 0
                     methodResults.addProperty("passed", passed)
                     methodResults.addProperty("pointsPossible", gradedAnnotation.points)
@@ -142,7 +143,7 @@ open class GradeTask : DefaultTask() {
                     }
                     methodResults.addProperty("description",
                             if (gradedAnnotation.friendlyName.isEmpty()) methodName else gradedAnnotation.friendlyName)
-                    methodResults.addProperty("explanation", methodName + (if (passed) " passed" else " failed"))
+                    methodResults.addProperty("explanation", testName + (if (passed) " passed" else " failed"))
                     methodResults.addProperty("type", "test")
                     scoringResults.add(methodResults)
                     pointsPossible += gradedAnnotation.points
