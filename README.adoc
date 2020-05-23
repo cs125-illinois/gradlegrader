@@ -19,7 +19,7 @@ This Gradle plugin provides autograding for Java-based assignments.
 * Multiple reporting options for resulting JSON, including local file dump and remote POST
 * Can require students to commit their work after earning more points
 * Supports Android modules tested by link:http://robolectric.org/[Robolectric]
-* Compatible with Gradle 5
+* Compatible with Gradle 5+
 
 == Installing
 
@@ -34,7 +34,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.github.cs125-illinois:gradlegrader:2020.1.0'
+        classpath 'com.github.cs125-illinois:gradlegrader:2020.1.2'
     }
 }
 
@@ -48,7 +48,7 @@ gradlegrader {
 To allow using GradleGrader annotations in test suites, add the same package as
 a dependency to the project(s) containing graded test suites:
 
-    testImplementation 'com.github.cs125-illinois:gradlegrader:2020.1.0'
+    testImplementation 'com.github.cs125-illinois:gradlegrader:2020.1.2'
 
 To apply the test dependency to all subprojects, add that to a `subprojects` &rarr;
 `afterEvaluate` &rarr; `dependencies` block in the root project's build script.
