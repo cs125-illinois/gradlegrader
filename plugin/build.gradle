@@ -32,8 +32,7 @@ compileJava {
     targetCompatibility = '1.8'
 }
 
-// Maven deployment configuration based on:
-// https://medium.com/@nmauti/sign-and-publish-on-maven-central-a-project-with-the-new-maven-publish-gradle-plugin-22a72a4bfd4b
+// Everything below is for publishing to Maven Central
 
 apply plugin: 'signing'
 apply plugin: 'maven-publish'
@@ -54,16 +53,6 @@ artifacts {
     archives javadocJar
 }
 
-signing {
-    def signTasks = sign configurations.archives
-    signTasks.each { t ->
-        def signatures = t.getSignatures()
-        signatures.removeAll { oneSig ->
-            signatures.count { anotherSig -> oneSig.getClassifier() == anotherSig.getClassifier() } > 1
-        }
-    }
-}
-
 def ossrhUsername = "username"
 def ossrhPassword = "password"
 try {
@@ -71,7 +60,7 @@ try {
   properties.load(project.rootProject.file('local.properties').newDataInputStream())
   ossrhUsername = properties.getProperty('ossrh.username')
   ossrhPassword = properties.getProperty('ossrh.password')
-} catch (Exception e) { }
+} catch (Exception ignored) { }
 
 publishing {
     publications {
@@ -79,7 +68,7 @@ publishing {
             customizePom(pom)
             groupId 'com.github.cs125-illinois'
             artifactId 'gradlegrader'
-            version '2020.1.0'
+            version '2020.1.2'
 
             from components.java
 
@@ -88,29 +77,6 @@ publishing {
             }
             artifact(javadocJar) {
                 classifier = 'javadoc'
-            }
-
-            // create the signed POM artifact
-            pom.withXml {
-                def pomFile = file("${project.buildDir}/generated-pom.xml")
-                writeTo(pomFile)
-                def pomAscFile = signing.sign(pomFile).signatureFiles[0]
-                artifact(pomAscFile) {
-                    classifier = null
-                    extension = 'pom.asc'
-                }
-            }
-            // create the signed artifacts
-            project.tasks.signArchives.signatureFiles.each {
-                artifact(it) {
-                    def matcher = it.file =~ /-(sources|javadoc)\.jar\.asc$/
-                    if (matcher.find()) {
-                        classifier = matcher.group(1)
-                    } else {
-                        classifier = null
-                    }
-                    extension = 'jar.asc'
-                }
             }
         }
     }
@@ -123,6 +89,10 @@ publishing {
             }
         }
     }
+}
+
+signing {
+    sign publishing.publications.getByName("mavenJava")
 }
 
 def customizePom(pom) {
@@ -162,14 +132,5 @@ def customizePom(pom) {
                 }
             }
         }
-    }
-}
-
-model {
-    tasks.publishMavenJavaPublicationToMavenLocal {
-        dependsOn project.tasks.signArchives
-    }
-    tasks.publishMavenJavaPublicationToMavenRepository {
-        dependsOn project.tasks.signArchives
     }
 }
