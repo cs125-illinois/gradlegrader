@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.github.cs125-illinois"
-version = "2020.10.0"
+version = "2020.10.1"
 
 dependencies {
     implementation(kotlin("stdlib"))
