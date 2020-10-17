@@ -68,7 +68,7 @@ publishing {
             customizePom(pom)
             groupId 'com.github.cs125-illinois'
             artifactId 'gradlegrader'
-            version '2020.1.3'
+            version '2020.10.0'
 
             from components.java
 

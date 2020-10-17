@@ -49,8 +49,10 @@ const val DEFAULT_HTTP = "http://0.0.0.0:8888"
 object TopLevel : ConfigSpec("") {
     val http by optional(DEFAULT_HTTP)
     val semester by optional<String?>(null)
-    val mongo by required<String>()
-    val mongoCollection by optional(NAME)
+    val mongodb by required<String>()
+    object Mongo : ConfigSpec() {
+        val collection by optional(NAME)
+    }
 }
 
 val configuration = Config {
@@ -62,10 +64,10 @@ val configuration = Config {
     it.from.env()
 }
 
-val mongoCollection: MongoCollection<BsonDocument> = configuration[TopLevel.mongo].run {
+val mongoCollection: MongoCollection<BsonDocument> = configuration[TopLevel.mongodb].run {
     val uri = MongoClientURI(this)
     val database = uri.database ?: assert { "MONGO must specify database to use" }
-    val collection = configuration[TopLevel.mongoCollection]
+    val collection = configuration[TopLevel.Mongo.collection]
     MongoClient(uri).getDatabase(database).getCollection(collection, BsonDocument::class.java)
 }
 

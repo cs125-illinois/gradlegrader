@@ -231,8 +231,7 @@ open class GradeTask : DefaultTask() {
             val checkpointScoreInfo = scoreInfo!!.getCheckpointInfo(currentCheckpoint) ?: VcsCheckpointScoreInfo(currentCheckpoint)
             needsCommit = (pointsEarned > checkpointScoreInfo.maxScore) && !repoIsClean
             val newScoreInfo = VcsCheckpointScoreInfo(currentCheckpoint, lastCommitId, max(pointsEarned, checkpointScoreInfo.maxScore), needsCommit)
-            project.file("config").mkdir()
-            project.file("config/.score.json").writeText(Gson().toJson(scoreInfo!!.withCheckpointInfoSet(newScoreInfo)))
+            project.rootProject.file(".score.json").writeText(Gson().toJson(scoreInfo!!.withCheckpointInfoSet(newScoreInfo)))
         }
 
         // Add final properties
