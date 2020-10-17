@@ -15,6 +15,7 @@ import org.gradle.api.GradleException
 import org.gradle.api.Task
 import org.gradle.api.logging.StandardOutputListener
 import org.gradle.api.plugins.quality.Checkstyle
+import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.testing.Test
 import org.w3c.dom.Element
@@ -38,21 +39,27 @@ open class GradeTask : DefaultTask() {
     private var checkstyleOutputFile: File? = null
 
     /** Collection of contributors/partners, or null if identification is not configured. */
+    @Input
     var contributors: List<String>? = null
 
     /** Configuration of the Git repository, or null if Git integration is off. */
+    @Input
     var gitConfig: StoredConfig? = null
 
     /** The ID of the last VCS commit, or null if Git integration is off. */
+    @Input
     var lastCommitId: String? = null
 
     /** Score-vs.-commit tracking information, or null if commit forcing is off. */
+    @Input
     var scoreInfo: VcsScoreInfo? = null
 
     /** Current checkpoint ID, or null if checkpointing is off. */
+    @Input
     var currentCheckpoint: String? = null
 
     /** Whether the repository is clean of changes. */
+    @Input
     var repoIsClean: Boolean = false
 
     /**
@@ -141,8 +148,10 @@ open class GradeTask : DefaultTask() {
                     if (!passed) {
                         methodResults.addProperty("failureStackTrace", it.getElementsByTagName("failure").item(0)?.textContent)
                     }
-                    methodResults.addProperty("description",
-                            if (gradedAnnotation.friendlyName.isEmpty()) methodName else gradedAnnotation.friendlyName)
+                    methodResults.addProperty(
+                        "description",
+                        if (gradedAnnotation.friendlyName.isEmpty()) methodName else gradedAnnotation.friendlyName
+                    )
                     methodResults.addProperty("explanation", testName + (if (passed) " passed" else " failed"))
                     methodResults.addProperty("type", "test")
                     scoringResults.add(methodResults)
@@ -180,8 +189,10 @@ open class GradeTask : DefaultTask() {
                 val xml = documentBuilder.parse(checkstyleOutputFile)
                 val passed = xml.getElementsByTagName("error").length == 0
                 checkstyleResults.addProperty("passed", passed)
-                checkstyleResults.addProperty("explanation",
-                        if (passed) "No checkstyle errors were reported" else "checkstyle found style issues")
+                checkstyleResults.addProperty(
+                    "explanation",
+                    if (passed) "No checkstyle errors were reported" else "checkstyle found style issues"
+                )
                 if (passed) checkstylePoints = config.checkstyle.points
             } else {
                 checkstyleResults.addProperty("passed", false)
@@ -277,8 +288,10 @@ open class GradeTask : DefaultTask() {
                 println(line)
             }
             if (needsCommit) {
-                println("CONGRATULATIONS: Your changes increased your score from " +
-                        "${scoreInfo!!.getCheckpointInfo(currentCheckpoint)?.maxScore ?: 0} to $pointsEarned!")
+                println(
+                    "CONGRATULATIONS: Your changes increased your score from " +
+                        "${scoreInfo!!.getCheckpointInfo(currentCheckpoint)?.maxScore ?: 0} to $pointsEarned!"
+                )
                 println("Commit your work right away! The autograder will not run again until you do.")
                 println(line)
             }

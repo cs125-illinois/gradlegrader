@@ -54,7 +54,6 @@ open class GradePolicyExtension {
     fun vcs(action: Action<in VcsPolicy>) {
         action.execute(vcs)
     }
-
 }
 
 /**

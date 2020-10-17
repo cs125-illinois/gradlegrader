@@ -25,5 +25,4 @@ open class RelentlessCheckstyle : Checkstyle() {
             // This scenario can be detected by looking for a zero-byte results XML file.
         }
     }
-
 }

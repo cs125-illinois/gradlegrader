@@ -59,12 +59,16 @@ class GradleGraderPlugin : Plugin<Project> {
                 }
                 val partners = Files.readAllLines(txtFile.toPath()).filter { it.isNotBlank() }
                 if (!config.identification.countLimit.isSatisfiedBy(partners.size)) {
-                    exitManager.fail(config.identification.message ?:
-                        "Invalid number of contributors (${partners.size}) in identification file: ${txtFile.absolutePath}")
+                    exitManager.fail(
+                        config.identification.message
+                            ?: "Invalid number of contributors (${partners.size}) in identification file: ${txtFile.absolutePath}"
+                    )
                 }
                 partners.forEach {
-                    if (!config.identification.validate.isSatisfiedBy(it)) exitManager.fail(config.identification.message ?:
-                        "Invalid contributor format: $it")
+                    if (!config.identification.validate.isSatisfiedBy(it)) exitManager.fail(
+                        config.identification.message
+                            ?: "Invalid contributor format: $it"
+                    )
                 }
                 gradeTask.contributors = partners
             }
@@ -177,9 +181,11 @@ class GradleGraderPlugin : Plugin<Project> {
         // Finish setup once all projects have been evaluated and tasks have been created
         project.afterEvaluate {
             if (config.forceClean) {
-                reconfTask.dependsOn(project.tasks.register("clearBuildDir", Delete::class.java) { delTask ->
-                    delTask.delete = setOf(project.buildDir)
-                }.get())
+                reconfTask.dependsOn(
+                    project.tasks.register("clearBuildDir", Delete::class.java) { delTask ->
+                        delTask.delete = setOf(project.buildDir)
+                    }.get()
+                )
             }
             gradeTask.dependsOn(reconfTask)
             if (config.checkpointing.yamlFile != null) {
@@ -204,5 +210,4 @@ class GradleGraderPlugin : Plugin<Project> {
             }
         }
     }
-
 }

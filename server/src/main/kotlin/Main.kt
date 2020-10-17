@@ -27,14 +27,14 @@ import io.ktor.routing.post
 import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import java.io.File
-import java.net.URI
-import java.time.Instant
-import java.util.Properties
 import mu.KotlinLogging
 import org.bson.BsonDateTime
 import org.bson.BsonDocument
 import org.bson.BsonString
+import java.io.File
+import java.net.URI
+import java.time.Instant
+import java.util.Properties
 
 @Suppress("UNUSED")
 private val logger = KotlinLogging.logger {}
@@ -114,11 +114,13 @@ fun Application.gradlegrader() {
         }
         post("/") {
             try {
-                mongoCollection.insertOne(BsonDocument.parse(call.receiveText())
+                mongoCollection.insertOne(
+                    BsonDocument.parse(call.receiveText())
                         .append("receivedVersion", BsonString(VERSION))
                         .append("receivedTime", BsonDateTime(Instant.now().toEpochMilli()))
                         .append("receivedIP", BsonString(call.request.origin.remoteHost))
-                        .append("receivedSemester", BsonString(configuration[TopLevel.semester])))
+                        .append("receivedSemester", BsonString(configuration[TopLevel.semester]))
+                )
                 currentStatus.uploadCount++
                 currentStatus.lastUpload = Instant.now()
                 call.respond(HttpStatusCode.OK)

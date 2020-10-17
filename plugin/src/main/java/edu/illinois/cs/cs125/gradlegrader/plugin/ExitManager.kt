@@ -35,5 +35,4 @@ class ExitManager(private val policy: GradePolicyExtension) {
             System.exit(0)
         }
     }
-
 }
