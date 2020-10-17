@@ -16,6 +16,7 @@ import org.gradle.api.Task
 import org.gradle.api.logging.StandardOutputListener
 import org.gradle.api.plugins.quality.Checkstyle
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.testing.Test
 import org.w3c.dom.Element
@@ -40,22 +41,27 @@ open class GradeTask : DefaultTask() {
 
     /** Collection of contributors/partners, or null if identification is not configured. */
     @Input
+    @Optional
     var contributors: List<String>? = null
 
     /** Configuration of the Git repository, or null if Git integration is off. */
     @Input
+    @Optional
     var gitConfig: StoredConfig? = null
 
     /** The ID of the last VCS commit, or null if Git integration is off. */
     @Input
+    @Optional
     var lastCommitId: String? = null
 
     /** Score-vs.-commit tracking information, or null if commit forcing is off. */
     @Input
+    @Optional
     var scoreInfo: VcsScoreInfo? = null
 
     /** Current checkpoint ID, or null if checkpointing is off. */
     @Input
+    @Optional
     var currentCheckpoint: String? = null
 
     /** Whether the repository is clean of changes. */
