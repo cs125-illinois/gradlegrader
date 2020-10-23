@@ -76,7 +76,8 @@ class GradleGraderPlugin : Plugin<Project> {
             // Check VCS
             if (config.vcs.git) {
                 val gitRepo = try {
-                    FileRepositoryBuilder().setMustExist(true).addCeilingDirectory(File(".")).findGitDir().build()
+                    val ceiling = project.rootProject.projectDir.parentFile // Go an extra level up to work around a JGit bug
+                    FileRepositoryBuilder().setMustExist(true).addCeilingDirectory(ceiling).findGitDir(project.projectDir).build()
                 } catch (_: Exception) { exitManager.fail("Grader Git integration is enabled but the project isn't a Git repository.") }
                 gradeTask.gitConfig = gitRepo.config
                 val lastCommit = gitRepo.resolve(Constants.HEAD).name
