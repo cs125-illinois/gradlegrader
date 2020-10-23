@@ -16,7 +16,6 @@ import org.gradle.api.plugins.quality.CheckstyleExtension
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.testing.Test
-import java.io.File
 import java.nio.file.Files
 
 /**
