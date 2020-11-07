@@ -107,7 +107,10 @@ open class GradeTask : DefaultTask() {
     fun run() {
         val config = project.extensions.getByType(GradePolicyExtension::class.java)
         val exitManager = ExitManager(config)
-        val documentBuilder = DocumentBuilderFactory.newInstance().apply { isValidating = false; isNamespaceAware = false }.newDocumentBuilder()
+        val documentBuilder = DocumentBuilderFactory.newInstance().apply {
+            isValidating = false
+            isNamespaceAware = false
+        }.newDocumentBuilder()
         val results = JsonObject()
         val scoringResults = JsonArray()
         var pointsPossible = 0
@@ -140,7 +143,19 @@ open class GradeTask : DefaultTask() {
                 (0 until testcaseList.length).map { n -> testcaseList.item(n) as Element }.forEach examineMethod@{
                     val testName = it.getAttribute("name")
                     val methodName = testName.substringBefore('[').substringBefore('(')
-                    val testMethod = testSuiteClass.methods.first { m -> m.name == methodName }
+                    if (methodName in setOf("initializationError", "classMethod")) {
+                        val initFailResults = JsonObject()
+                        initFailResults.addProperty("module", task.project.name)
+                        initFailResults.addProperty("className", className)
+                        initFailResults.addProperty("description", className.substringAfterLast('.'))
+                        initFailResults.addProperty("pointsPossible", 0)
+                        initFailResults.addProperty("pointsEarned", 0)
+                        initFailResults.addProperty("explanation", "Initialization failed")
+                        initFailResults.addProperty("type", "testInitializationError")
+                        scoringResults.add(initFailResults)
+                        return@examineMethod
+                    }
+                    val testMethod = testSuiteClass.methods.firstOrNull { m -> m.name == methodName } ?: return@examineMethod
                     val gradedAnnotation = testMethod.getDeclaredAnnotation(Graded::class.java) ?: return@examineMethod
                     val methodResults = JsonObject()
                     testMethod.getAnnotationsByType(Tag::class.java).forEach { tag -> methodResults.addProperty(tag.name, tag.value) }
