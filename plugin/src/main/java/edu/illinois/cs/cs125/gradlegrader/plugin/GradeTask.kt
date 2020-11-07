@@ -147,6 +147,7 @@ open class GradeTask : DefaultTask() {
                         val initFailResults = JsonObject()
                         initFailResults.addProperty("module", task.project.name)
                         initFailResults.addProperty("className", className)
+                        initFailResults.addProperty("failureStackTrace", it.getElementsByTagName("failure").item(0)?.textContent)
                         initFailResults.addProperty("description", className.substringAfterLast('.'))
                         initFailResults.addProperty("pointsPossible", 0)
                         initFailResults.addProperty("pointsEarned", 0)

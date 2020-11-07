@@ -409,8 +409,10 @@ This property is an array of objects, one for each scoring component
 * `passed` is whether the report indicated no style violations.
 
 `testInitializationError` items have these additional properties:
-* `className` is the fully qualified class name of the test class that failed to initialize.
 * `module` is the name of the Gradle subproject containing the crashed test class.
+* `className` is the fully qualified class name of the test class that failed to initialize.
+* `failureStackTrace` is the stack trace of the exception that caused initialization to
+  fail.
 
 `test` items have these additional properties:
 
