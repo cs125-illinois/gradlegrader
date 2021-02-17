@@ -107,7 +107,10 @@ open class GradeTask : DefaultTask() {
     fun run() {
         val config = project.extensions.getByType(GradePolicyExtension::class.java)
         val exitManager = ExitManager(config)
-        val documentBuilder = DocumentBuilderFactory.newInstance().apply { isValidating = false; isNamespaceAware = false }.newDocumentBuilder()
+        val documentBuilder = DocumentBuilderFactory.newInstance().apply {
+            isValidating = false
+            isNamespaceAware = false
+        }.newDocumentBuilder()
         val results = JsonObject()
         val scoringResults = JsonArray()
         var pointsPossible = 0
@@ -125,44 +128,59 @@ open class GradeTask : DefaultTask() {
 
         // Grade tests/projects
         val projectResults = JsonArray()
+        fun processTestFile(task: Task, loader: ClassLoader, file: File) {
+            val xml = documentBuilder.parse(file)
+            val className = xml.documentElement.getAttribute("name")
+            val testSuiteClass = loader.loadClass(className)!!
+            val testcaseList = xml.documentElement.getElementsByTagName("testcase")
+            (0 until testcaseList.length).map { n -> testcaseList.item(n) as Element }.forEach examineMethod@{
+                val testName = it.getAttribute("name")
+                val methodName = testName.substringBefore('[').substringBefore('(')
+                if (methodName in setOf("initializationError", "classMethod")) {
+                    val initFailResults = JsonObject()
+                    initFailResults.addProperty("module", task.project.name)
+                    initFailResults.addProperty("className", className)
+                    initFailResults.addProperty("failureStackTrace", it.getElementsByTagName("failure").item(0)?.textContent)
+                    initFailResults.addProperty("description", className.substringAfterLast('.'))
+                    initFailResults.addProperty("pointsPossible", 0)
+                    initFailResults.addProperty("pointsEarned", 0)
+                    initFailResults.addProperty("explanation", "Initialization failed")
+                    initFailResults.addProperty("type", "testInitializationError")
+                    scoringResults.add(initFailResults)
+                    return@examineMethod
+                }
+                val testMethod = testSuiteClass.methods.firstOrNull { m -> m.name == methodName } ?: return@examineMethod
+                val gradedAnnotation = testMethod.getDeclaredAnnotation(Graded::class.java) ?: return@examineMethod
+                val methodResults = JsonObject()
+                testMethod.getAnnotationsByType(Tag::class.java).forEach { tag -> methodResults.addProperty(tag.name, tag.value) }
+                methodResults.addProperty("module", task.project.name)
+                methodResults.addProperty("className", className)
+                methodResults.addProperty("testCase", testName)
+                val passed = it.getElementsByTagName("failure").length == 0 && it.getElementsByTagName("skipped").length == 0
+                methodResults.addProperty("passed", passed)
+                methodResults.addProperty("pointsPossible", gradedAnnotation.points)
+                methodResults.addProperty("pointsEarned", if (passed) gradedAnnotation.points else 0)
+                if (!passed) {
+                    methodResults.addProperty("failureStackTrace", it.getElementsByTagName("failure").item(0)?.textContent)
+                }
+                methodResults.addProperty(
+                    "description",
+                    if (gradedAnnotation.friendlyName.isEmpty()) methodName else gradedAnnotation.friendlyName
+                )
+                methodResults.addProperty("explanation", testName + (if (passed) " passed" else " failed"))
+                methodResults.addProperty("type", "test")
+                scoringResults.add(methodResults)
+                pointsPossible += gradedAnnotation.points
+                pointsEarned += if (passed) gradedAnnotation.points else 0
+            }
+        }
         gradedTests.forEach { task ->
-            // Prepare a class loader that can access test suite classes
-            val loader = URLClassLoader(task.classpath.map { it.toURI().toURL() }.toTypedArray(), javaClass.classLoader)
-
-            // Load the report XML files
+            // Process the report XML files with a class loader that can access test classes
             var compiled = false
-            task.reports.junitXml.destination.listFiles { _, name -> name.endsWith(".xml") }?.forEach { file ->
-                compiled = true
-                val xml = documentBuilder.parse(file)
-                val className = xml.documentElement.getAttribute("name")
-                val testSuiteClass = loader.loadClass(className)!!
-                val testcaseList = xml.documentElement.getElementsByTagName("testcase")
-                (0 until testcaseList.length).map { n -> testcaseList.item(n) as Element }.forEach examineMethod@{
-                    val testName = it.getAttribute("name")
-                    val methodName = testName.substringBefore('[').substringBefore('(')
-                    val testMethod = testSuiteClass.methods.first { m -> m.name == methodName }
-                    val gradedAnnotation = testMethod.getDeclaredAnnotation(Graded::class.java) ?: return@examineMethod
-                    val methodResults = JsonObject()
-                    testMethod.getAnnotationsByType(Tag::class.java).forEach { tag -> methodResults.addProperty(tag.name, tag.value) }
-                    methodResults.addProperty("module", task.project.name)
-                    methodResults.addProperty("className", className)
-                    methodResults.addProperty("testCase", testName)
-                    val passed = it.getElementsByTagName("failure").length == 0 && it.getElementsByTagName("skipped").length == 0
-                    methodResults.addProperty("passed", passed)
-                    methodResults.addProperty("pointsPossible", gradedAnnotation.points)
-                    methodResults.addProperty("pointsEarned", if (passed) gradedAnnotation.points else 0)
-                    if (!passed) {
-                        methodResults.addProperty("failureStackTrace", it.getElementsByTagName("failure").item(0)?.textContent)
-                    }
-                    methodResults.addProperty(
-                        "description",
-                        if (gradedAnnotation.friendlyName.isEmpty()) methodName else gradedAnnotation.friendlyName
-                    )
-                    methodResults.addProperty("explanation", testName + (if (passed) " passed" else " failed"))
-                    methodResults.addProperty("type", "test")
-                    scoringResults.add(methodResults)
-                    pointsPossible += gradedAnnotation.points
-                    pointsEarned += if (passed) gradedAnnotation.points else 0
+            URLClassLoader(task.classpath.map { it.toURI().toURL() }.toTypedArray(), javaClass.classLoader).use { loader ->
+                task.reports.junitXml.destination.listFiles { _, name -> name.endsWith(".xml") }?.forEach { file ->
+                    compiled = true
+                    processTestFile(task, loader, file)
                 }
             }
 

@@ -396,7 +396,8 @@ This property is an array of objects, one for each scoring component
 * `pointsPossible` is the number of points possible to earn from this item.
 * `pointsEarned` is number of points earned: all points possible if the check/test succeeded,
   or zero if failed.
-* `type` identifies what kind of item this is: `compileError`, `checkstyle`, or `test`.
+* `type` identifies what kind of item this is: `compileError`, `checkstyle`,
+  `testInitializationError`, or `test`.
 
 `compileError` items have this additional property:
 
@@ -407,10 +408,16 @@ This property is an array of objects, one for each scoring component
 * `ran` is whether `checkstyle` processed the sources without crashing and generated a report.
 * `passed` is whether the report indicated no style violations.
 
+`testInitializationError` items have these additional properties:
+* `module` is the name of the Gradle subproject containing the crashed test class.
+* `className` is the fully qualified class name of the test class that failed to initialize.
+* `failureStackTrace` is the stack trace of the exception that caused initialization to
+  fail.
+
 `test` items have these additional properties:
 
 * `module` is the name of the Gradle subproject containing this test.
-* `className` is the fully-qualified Java class name of the test suite.
+* `className` is the fully-qualified class name of the test suite.
 * `testCase` is the test method name.
 * `passed` is whether the test completed successfully.
 * `failureStackTrace` is the stack trace of the exception that caused the test case to fail,
