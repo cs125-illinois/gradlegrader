@@ -3,7 +3,7 @@ import java.io.StringWriter
 import java.util.Properties
 
 group = "edu.illinois.cs.cs125"
-version = "2021.2.0"
+version = "2021.3.0"
 
 plugins {
     kotlin("jvm")
@@ -16,7 +16,7 @@ plugins {
 dependencies {
     kapt("com.squareup.moshi:moshi-kotlin-codegen:1.11.0")
 
-    val ktorVersion = "1.5.1"
+    val ktorVersion = "1.5.2"
     implementation(kotlin("stdlib"))
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
     implementation("org.mongodb:mongodb-driver:3.12.8")
@@ -25,7 +25,7 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.2.3")
     implementation("com.uchuhimo:konf-core:1.0.0")
     implementation("com.uchuhimo:konf-yaml:1.0.0")
-    implementation("io.github.microutils:kotlin-logging:2.0.4")
+    implementation("io.github.microutils:kotlin-logging:2.0.6")
 }
 application {
     mainClassName = "edu.illinois.cs.cs125.gradlegrader.server.MainKt"

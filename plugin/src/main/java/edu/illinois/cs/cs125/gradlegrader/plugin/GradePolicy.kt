@@ -22,6 +22,7 @@ open class GradePolicyExtension {
     var captureOutput: Boolean = false
     var checkpointing: CheckpointPolicy = CheckpointPolicy()
     var checkstyle: CheckstylePolicy = CheckstylePolicy()
+    var detekt: DetektPolicy = DetektPolicy()
     var forceClean: Boolean = true
     var identification: IdentificationPolicy = IdentificationPolicy()
     var keepDaemon: Boolean = true
@@ -37,6 +38,10 @@ open class GradePolicyExtension {
     fun checkstyle(action: Action<in CheckstylePolicy>) {
         checkstyle.enabled = true
         action.execute(checkstyle)
+    }
+    fun detekt(action: Action<in DetektPolicy>) {
+        detekt.enabled = true
+        action.execute(detekt)
     }
     fun identification(action: Action<in IdentificationPolicy>) {
         identification.enabled = true
@@ -91,6 +96,14 @@ open class CheckstylePolicy {
     fun include(vararg patterns: String) {
         include = patterns.toList()
     }
+}
+
+/**
+ * Class to hold detekt settings.
+ */
+open class DetektPolicy {
+    var enabled: Boolean = false
+    var points: Int = 0
 }
 
 /**

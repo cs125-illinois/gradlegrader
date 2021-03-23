@@ -5,6 +5,7 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import edu.illinois.cs.cs125.gradlegrader.annotations.Graded
 import edu.illinois.cs.cs125.gradlegrader.annotations.Tag
+import io.gitlab.arturbosch.detekt.Detekt
 import org.apache.commons.text.WordUtils
 import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.StringEntity
@@ -38,6 +39,9 @@ open class GradeTask : DefaultTask() {
 
     /** XML file written by checkstyle, or null if checkstyle is not configured. */
     private var checkstyleOutputFile: File? = null
+
+    /** XML file written by detekt, or null if detekt is not configured. */
+    private var detektOutputFile: File? = null
 
     /** Collection of contributors/partners, or null if identification is not configured. */
     @Input
@@ -97,6 +101,15 @@ open class GradeTask : DefaultTask() {
     fun gatherCheckstyleInfo(task: Checkstyle) {
         if (checkstyleOutputFile != null) throw GradleException("checkstyle task already set")
         checkstyleOutputFile = task.reports.xml.destination
+    }
+
+    /**
+     * Sets up the grader with information about the (singular) detekt task.
+     * @param task the detekt task
+     */
+    fun gatherDetektInfo(task: Detekt) {
+        if (detektOutputFile != null) throw GradleException("checkstyle task already set")
+        detektOutputFile = task.reports.xml.destination ?: project.file("build/reports/detekt/detekt.xml")
     }
 
     /**
@@ -233,7 +246,35 @@ open class GradeTask : DefaultTask() {
             scoringResults.add(checkstyleResults)
         }
 
-        // Scoring is done
+        // Load detekt XML
+        if (config.detekt.enabled) {
+            pointsPossible += config.detekt.points
+            val detektResults = JsonObject()
+            val ran = detektOutputFile!!.exists() && detektOutputFile!!.length() > 0
+            detektResults.addProperty("ran", ran)
+            var detektPoints = 0
+            if (ran) {
+                val xml = documentBuilder.parse(detektOutputFile)
+                val passed = xml.getElementsByTagName("error").length == 0
+                detektResults.addProperty("passed", passed)
+                detektResults.addProperty(
+                    "explanation",
+                    if (passed) "No detekt errors were reported" else "detekt found issues"
+                )
+                if (passed) detektPoints = config.detekt.points
+            } else {
+                detektResults.addProperty("passed", false)
+                detektResults.addProperty("explanation", "detekt crashed")
+            }
+            detektResults.addProperty("description", "detekt")
+            detektResults.addProperty("pointsEarned", detektPoints)
+            detektResults.addProperty("pointsPossible", config.detekt.points)
+            detektResults.addProperty("type", "detekt")
+            pointsEarned += detektPoints
+            scoringResults.add(detektResults)
+        }
+
+            // Scoring is done
         var showRawPointsEarned: Int? = null
         config.maxPoints?.let {
             pointsPossible = it

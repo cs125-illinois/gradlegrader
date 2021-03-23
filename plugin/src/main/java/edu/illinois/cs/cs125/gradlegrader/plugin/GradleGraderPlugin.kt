@@ -7,6 +7,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.google.gson.Gson
+import io.gitlab.arturbosch.detekt.Detekt
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
@@ -41,6 +42,7 @@ class GradleGraderPlugin : Plugin<Project> {
         var currentCheckpoint: String? = null
 
         val checkstyleTask = project.tasks.register("relentlessCheckstyle", RelentlessCheckstyle::class.java).get()
+        val detektTask = project.tasks.register("ourDetekt", Detekt::class.java).get()
         val gradeTask: GradeTask = project.tasks.register("grade", GradeTask::class.java).get()
         val reconfTask = project.task("prepareForGrading").doLast {
             // Check projects' test tasks
@@ -114,6 +116,10 @@ class GradleGraderPlugin : Plugin<Project> {
                 gradeTask.listenTo(checkstyleTask)
             }
 
+            if (config.detekt.enabled) {
+                detektTask.ignoreFailures = true
+            }
+
             // Configure the test tasks
             testTasks.values.forEach {
                 gradeTask.listenTo(it)
@@ -155,6 +161,13 @@ class GradleGraderPlugin : Plugin<Project> {
                 checkstyleTask.mustRunAfter(cleanTasks)
                 gradeTask.dependsOn(checkstyleTask)
                 gradeTask.gatherCheckstyleInfo(checkstyleTask)
+            }
+
+            if (config.detekt.enabled) {
+                detektTask.mustRunAfter(reconfTask)
+                detektTask.mustRunAfter(cleanTasks)
+                gradeTask.dependsOn(detektTask)
+                gradeTask.gatherDetektInfo(detektTask)
             }
 
             // Get subproject tasks
