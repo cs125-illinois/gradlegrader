@@ -5,7 +5,7 @@ plugins {
     kotlin("jvm") version kotlinVersion apply false
     kotlin("kapt") version kotlinVersion apply false
     id("com.github.johnrengelman.shadow") version "6.1.0"
-    id("org.jmailen.kotlinter") version "3.3.0" apply false
+    id("org.jmailen.kotlinter") version "3.4.0" apply false
     id("com.github.ben-manes.versions") version "0.38.0"
 }
 allprojects {
