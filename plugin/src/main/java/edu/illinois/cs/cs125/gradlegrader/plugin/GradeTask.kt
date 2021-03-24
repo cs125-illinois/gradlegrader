@@ -274,7 +274,7 @@ open class GradeTask : DefaultTask() {
             scoringResults.add(detektResults)
         }
 
-            // Scoring is done
+        // Scoring is done
         var showRawPointsEarned: Int? = null
         config.maxPoints?.let {
             pointsPossible = it

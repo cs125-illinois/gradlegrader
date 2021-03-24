@@ -8,6 +8,7 @@ import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.google.gson.Gson
 import io.gitlab.arturbosch.detekt.Detekt
+import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
@@ -106,7 +107,7 @@ class GradleGraderPlugin : Plugin<Project> {
                 val checkstyleConfig = project.extensions.getByType(CheckstyleExtension::class.java)
                 checkstyleConfig.toolVersion = config.checkstyle.version
                 checkstyleConfig.reportsDir = project.file("build/reports/checkstyle")
-                checkstyleTask.setProperty("ignoreFailures", true)
+                checkstyleTask.ignoreFailures = true
                 checkstyleTask.outputs.upToDateWhen { false }
                 checkstyleTask.source(findSubprojects().map { "${it.projectDir}/src/main" })
                 checkstyleTask.setIncludes(config.checkstyle.include)
@@ -117,7 +118,12 @@ class GradleGraderPlugin : Plugin<Project> {
             }
 
             if (config.detekt.enabled) {
+                val detektConfig = project.extensions.getByType(DetektExtension::class.java)
                 detektTask.ignoreFailures = true
+                detektTask.outputs.upToDateWhen { false }
+                detektTask.source(detektConfig.input)
+                detektTask.buildUponDefaultConfig = detektConfig.buildUponDefaultConfig
+                detektTask.config.setFrom(detektConfig.config)
             }
 
             // Configure the test tasks
