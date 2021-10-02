@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.github.cs125-illinois"
-version = "2021.10.0"
+version = "2021.10.1"
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.5.31")
@@ -31,8 +31,8 @@ gradlePlugin {
     }
 }
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_16
+    targetCompatibility = JavaVersion.VERSION_16
 }
 publishing {
     publications {

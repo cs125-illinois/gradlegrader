@@ -98,6 +98,7 @@ open class GradeTask : DefaultTask() {
      * Sets up the grader with information about the (singular) checkstyle task.
      * @param task the checkstyle task
      */
+    @Suppress("DEPRECATION")
     fun gatherCheckstyleInfo(task: Checkstyle) {
         if (checkstyleOutputFile != null) throw GradleException("checkstyle task already set")
         checkstyleOutputFile = task.reports.xml.destination
@@ -178,7 +179,7 @@ open class GradeTask : DefaultTask() {
                 }
                 methodResults.addProperty(
                     "description",
-                    if (gradedAnnotation.friendlyName.isEmpty()) methodName else gradedAnnotation.friendlyName
+                    gradedAnnotation.friendlyName.ifEmpty { methodName }
                 )
                 methodResults.addProperty("explanation", testName + (if (passed) " passed" else " failed"))
                 methodResults.addProperty("type", "test")
@@ -190,6 +191,7 @@ open class GradeTask : DefaultTask() {
         gradedTests.forEach { task ->
             // Process the report XML files with a class loader that can access test classes
             var compiled = false
+            @Suppress("DEPRECATION")
             URLClassLoader(task.classpath.map { it.toURI().toURL() }.toTypedArray(), javaClass.classLoader).use { loader ->
                 task.reports.junitXml.destination.listFiles { _, name -> name.endsWith(".xml") }?.forEach { file ->
                     compiled = true
