@@ -15,7 +15,7 @@ allprojects {
         maven(url = "https://jitpack.io")
     }
     tasks.withType<KotlinCompile> {
-        val javaVersion = JavaVersion.VERSION_1_8.toString()
+        val javaVersion = JavaVersion.VERSION_16.toString()
         sourceCompatibility = javaVersion
         targetCompatibility = javaVersion
         kotlinOptions {

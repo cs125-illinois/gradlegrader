@@ -52,3 +52,11 @@ task("createProperties") {
 tasks.processResources {
     dependsOn("createProperties")
 }
+kotlin {
+    kotlinDaemonJvmArgs = listOf("-Dfile.encoding=UTF-8", "--illegal-access=permit")
+}
+kapt {
+    javacOptions {
+        option("--illegal-access", "permit")
+    }
+}
