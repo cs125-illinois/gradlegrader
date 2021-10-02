@@ -3,7 +3,7 @@ import java.io.StringWriter
 import java.util.Properties
 
 group = "edu.illinois.cs.cs125"
-version = "2021.9.0"
+version = "2021.10.0"
 
 plugins {
     kotlin("jvm")
@@ -17,7 +17,7 @@ dependencies {
     kapt("com.squareup.moshi:moshi-kotlin-codegen:1.12.0")
 
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.5.31")
-    implementation("io.ktor:ktor-server-netty:1.6.3")
+    implementation("io.ktor:ktor-server-netty:1.6.4")
     implementation("org.mongodb:mongodb-driver:3.12.10")
     implementation("com.squareup.moshi:moshi-kotlin-codegen:1.12.0")
     implementation("com.github.cs125-illinois:ktor-moshi:1.0.3")
@@ -27,6 +27,7 @@ dependencies {
     implementation("io.github.microutils:kotlin-logging:2.0.11")
 }
 application {
+    @Suppress("DEPRECATION")
     mainClassName = "edu.illinois.cs.cs125.gradlegrader.server.MainKt"
 }
 docker {
