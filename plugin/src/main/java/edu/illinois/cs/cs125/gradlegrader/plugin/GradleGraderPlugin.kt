@@ -4,9 +4,8 @@ package edu.illinois.cs.cs125.gradlegrader.plugin
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
-import com.fasterxml.jackson.module.kotlin.KotlinFeature
-import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.google.gson.Gson
 import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension
@@ -209,18 +208,7 @@ class GradleGraderPlugin : Plugin<Project> {
             }
             gradeTask.dependsOn(reconfTask)
             if (config.checkpointing.yamlFile != null) {
-                val configLoader = ObjectMapper(YAMLFactory()).also {
-                    it.registerModule(
-                        KotlinModule.Builder()
-                            .withReflectionCacheSize(512)
-                            .configure(KotlinFeature.NullToEmptyCollection, false)
-                            .configure(KotlinFeature.NullToEmptyMap, false)
-                            .configure(KotlinFeature.NullIsSameAsDefault, false)
-                            .configure(KotlinFeature.SingletonSupport, false)
-                            .configure(KotlinFeature.StrictNullChecks, false)
-                            .build()
-                    )
-                }
+                val configLoader = ObjectMapper(YAMLFactory()).also { it.registerKotlinModule() }
                 val checkpointConfig = configLoader.readValue<CheckpointConfig>(config.checkpointing.yamlFile!!)
                 currentCheckpoint = checkpointConfig.checkpoint
                 gradeTask.currentCheckpoint = currentCheckpoint

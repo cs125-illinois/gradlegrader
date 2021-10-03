@@ -2,6 +2,7 @@ package edu.illinois.cs.cs125.gradlegrader.plugin
 
 import org.gradle.api.GradleException
 import java.lang.RuntimeException
+import kotlin.system.exitProcess
 
 /**
  * Manages the exit of the task/process according to configuration.
@@ -32,7 +33,7 @@ class ExitManager(private val policy: GradePolicyExtension) {
         if (!policy.keepDaemon || forceExit) {
             System.out.flush()
             System.err.flush()
-            System.exit(0)
+            exitProcess(0)
         }
     }
 }
