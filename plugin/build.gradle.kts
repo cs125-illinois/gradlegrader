@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     kotlin("jvm")
     `java-gradle-plugin`
@@ -7,7 +9,7 @@ plugins {
 }
 
 group = "com.github.cs125-illinois"
-version = "2021.10.3"
+version = "2021.10.5"
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.5.31")
@@ -40,5 +42,11 @@ publishing {
             artifactId = "gradlegrader"
             from(components["java"])
         }
+    }
+}
+tasks.withType<KotlinCompile>().configureEach {
+    kotlinOptions {
+        apiVersion = "1.4"
+        languageVersion = "1.4"
     }
 }
