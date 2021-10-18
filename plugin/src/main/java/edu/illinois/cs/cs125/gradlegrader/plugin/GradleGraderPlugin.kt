@@ -18,8 +18,8 @@ import org.gradle.api.plugins.quality.CheckstyleExtension
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.testing.Test
-import java.nio.file.Files
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.nio.file.Files
 
 /**
  * The gradlegrader Gradle plugin.
