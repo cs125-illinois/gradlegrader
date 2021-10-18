@@ -14,11 +14,12 @@ import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.Task
 import org.gradle.api.plugins.quality.CheckstyleExtension
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.testing.Test
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.dsl.KotlinCompile
 import java.nio.file.Files
 
 /**
@@ -40,7 +41,7 @@ class GradleGraderPlugin : Plugin<Project> {
         }
 
         val javaCompileTasks = mutableSetOf<JavaCompile>()
-        val kotlinCompileTasks = mutableSetOf<KotlinCompile>()
+        val kotlinCompileTasks = mutableSetOf<Task>()
 
         val testTasks = mutableMapOf<Project, Test>()
         var currentCheckpoint: String? = null
@@ -85,22 +86,32 @@ class GradleGraderPlugin : Plugin<Project> {
             // Check VCS
             if (config.vcs.git) {
                 val gitRepo = try {
-                    val ceiling = project.rootProject.projectDir.parentFile // Go an extra level up to work around a JGit bug
-                    FileRepositoryBuilder().setMustExist(true).addCeilingDirectory(ceiling).findGitDir(project.projectDir).build()
-                } catch (_: Exception) { exitManager.fail("Grader Git integration is enabled but the project isn't a Git repository.") }
+                    val ceiling =
+                        project.rootProject.projectDir.parentFile // Go an extra level up to work around a JGit bug
+                    FileRepositoryBuilder().setMustExist(true).addCeilingDirectory(ceiling)
+                        .findGitDir(project.projectDir).build()
+                } catch (_: Exception) {
+                    exitManager.fail("Grader Git integration is enabled but the project isn't a Git repository.")
+                }
                 gradeTask.gitConfig = gitRepo.config
                 val lastCommit = gitRepo.resolve(Constants.HEAD).name
                 gradeTask.lastCommitId = lastCommit
                 if (config.vcs.requireCommit) {
                     var scoreInfo = VcsScoreInfo(listOf())
                     try {
-                        val loadedInfo = Gson().fromJson(project.rootProject.file(".score.json").readText(), VcsScoreInfo::class.java)
+                        val loadedInfo = Gson().fromJson(
+                            project.rootProject.file(".score.json").readText(),
+                            VcsScoreInfo::class.java
+                        )
                         @Suppress("SENSELESS_COMPARISON") // Possible for checkpoints to be null if loaded by Gson
                         if (loadedInfo.checkpoints != null) scoreInfo = loadedInfo
-                    } catch (ignored: Exception) { }
-                    val checkpointScoreInfo = scoreInfo.getCheckpointInfo(currentCheckpoint) ?: VcsCheckpointScoreInfo(currentCheckpoint)
+                    } catch (ignored: Exception) {
+                    }
+                    val checkpointScoreInfo =
+                        scoreInfo.getCheckpointInfo(currentCheckpoint) ?: VcsCheckpointScoreInfo(currentCheckpoint)
                     val status = Git.open(gitRepo.workTree).status().call()
-                    val clean = (status.added.size + status.changed.size + status.removed.size + status.modified.size + status.missing.size) == 0
+                    val clean =
+                        (status.added.size + status.changed.size + status.removed.size + status.modified.size + status.missing.size) == 0
                     if (checkpointScoreInfo.increased && checkpointScoreInfo.lastSeenCommit == lastCommit && !clean) {
                         exitManager.fail("The autograder will not run until you commit the changes that increased your score.")
                     }
@@ -119,7 +130,8 @@ class GradleGraderPlugin : Plugin<Project> {
                 checkstyleTask.source(findSubprojects().map { "${it.projectDir}/src/main" })
                 checkstyleTask.setIncludes(config.checkstyle.include)
                 checkstyleTask.setExcludes(config.checkstyle.exclude)
-                checkstyleTask.configFile = config.checkstyle.configFile ?: exitManager.fail("checkstyle.configFile not specified")
+                checkstyleTask.configFile =
+                    config.checkstyle.configFile ?: exitManager.fail("checkstyle.configFile not specified")
                 checkstyleTask.classpath = project.files()
                 gradeTask.listenTo(checkstyleTask)
             }
@@ -200,7 +212,6 @@ class GradleGraderPlugin : Plugin<Project> {
                     compile.mustRunAfter(reconfTask)
                     kotlinCompileTasks.add(compile)
                 }
-
                 // Depend on tests
                 subproject.tasks.withType(Test::class.java) { test ->
                     if (test.name in setOf("test", "testDebugUnitTest")) {

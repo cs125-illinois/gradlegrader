@@ -9,18 +9,12 @@ plugins {
 }
 
 group = "com.github.cs125-illinois"
-version = "2021.10.9"
+version = "2021.10.10"
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.5.31")
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.5.31")
-    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.31") {
-        exclude(group = "org.jetbrains.kotlin", module = "compiler-embeddable")
-        exclude(group = "org.jetbrains.kotlin", module = "kotlin-android-extensions")
-        exclude(group = "org.jetbrains.kotlin", module = "kotlin-compiler-embeddable")
-        exclude(group = "org.jetbrains.kotlin", module = "kotlin-compiler-runner")
-        exclude(group = "org.jetbrains.kotlin", module = "kotlin-scripting-compiler-embeddable")
-    }
+    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin-api:1.5.31")
     implementation(gradleApi())
     implementation("com.google.code.gson:gson:2.8.8")
     implementation("org.apache.httpcomponents:httpclient:4.5.13")
@@ -56,7 +50,4 @@ tasks.withType<KotlinCompile>().configureEach {
         apiVersion = "1.4"
         languageVersion = "1.4"
     }
-}
-tasks.shadowJar {
-    isZip64 = true
 }
