@@ -19,6 +19,7 @@ import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.testing.Test
 import java.nio.file.Files
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 /**
  * The gradlegrader Gradle plugin.
@@ -38,13 +39,19 @@ class GradleGraderPlugin : Plugin<Project> {
             return config.subprojects ?: listOf(project)
         }
 
-        val compileTasks = mutableSetOf<JavaCompile>()
+        val javaCompileTasks = mutableSetOf<JavaCompile>()
+        val kotlinCompileTasks = mutableSetOf<KotlinCompile>()
+
         val testTasks = mutableMapOf<Project, Test>()
         var currentCheckpoint: String? = null
 
         val checkstyleTask = project.tasks.register("relentlessCheckstyle", RelentlessCheckstyle::class.java).get()
         val detektTask = project.tasks.register("ourDetekt", Detekt::class.java).get()
-        val gradeTask: GradeTask = project.tasks.register("grade", GradeTask::class.java).get()
+
+        val targetTask = project.tasks.register("grade").get()
+        val gradeTask: GradeTask = project.tasks.register("score", GradeTask::class.java).get()
+        gradeTask.mustRunAfter(targetTask)
+
         val reconfTask = project.task("prepareForGrading").doLast {
             // Check projects' test tasks
             findSubprojects().forEach { subproject ->
@@ -146,9 +153,13 @@ class GradleGraderPlugin : Plugin<Project> {
             }
 
             // Configure compilation tasks
-            compileTasks.forEach {
+            javaCompileTasks.forEach {
                 gradeTask.listenTo(it)
                 it.options.isFailOnError = false
+                it.outputs.upToDateWhen { false }
+            }
+            kotlinCompileTasks.forEach {
+                gradeTask.listenTo(it)
                 it.outputs.upToDateWhen { false }
             }
         }
@@ -158,21 +169,21 @@ class GradleGraderPlugin : Plugin<Project> {
             val cleanTasks = findSubprojects().map { it.tasks.getByName("clean") }
             if (config.forceClean) {
                 // Require a clean first
-                gradeTask.dependsOn(cleanTasks)
+                targetTask.dependsOn(cleanTasks)
             }
 
             // Depend on checkstyle
             if (config.checkstyle.enabled) {
                 checkstyleTask.mustRunAfter(reconfTask)
                 checkstyleTask.mustRunAfter(cleanTasks)
-                gradeTask.dependsOn(checkstyleTask)
+                targetTask.dependsOn(checkstyleTask)
                 gradeTask.gatherCheckstyleInfo(checkstyleTask)
             }
 
             if (config.detekt.enabled) {
                 detektTask.mustRunAfter(reconfTask)
                 detektTask.mustRunAfter(cleanTasks)
-                gradeTask.dependsOn(detektTask)
+                targetTask.dependsOn(detektTask)
                 gradeTask.gatherDetektInfo(detektTask)
             }
 
@@ -182,7 +193,12 @@ class GradleGraderPlugin : Plugin<Project> {
                 subproject.tasks.withType(JavaCompile::class.java) { compile ->
                     compile.mustRunAfter(cleanTasks)
                     compile.mustRunAfter(reconfTask)
-                    compileTasks.add(compile)
+                    javaCompileTasks.add(compile)
+                }
+                subproject.tasks.withType(KotlinCompile::class.java) { compile ->
+                    compile.mustRunAfter(cleanTasks)
+                    compile.mustRunAfter(reconfTask)
+                    kotlinCompileTasks.add(compile)
                 }
 
                 // Depend on tests
@@ -191,7 +207,7 @@ class GradleGraderPlugin : Plugin<Project> {
                         testTasks[subproject] = test
                         test.mustRunAfter(cleanTasks)
                         test.mustRunAfter(reconfTask)
-                        gradeTask.dependsOn(test)
+                        targetTask.dependsOn(test)
                     }
                 }
             }

@@ -188,14 +188,22 @@ open class GradeTask : DefaultTask() {
                 pointsEarned += if (passed) gradedAnnotation.points else 0
             }
         }
+
+        val testingSucceeded = project.tasks.getByName("grade").state.executed
+
         gradedTests.forEach { task ->
             // Process the report XML files with a class loader that can access test classes
             var compiled = false
-            @Suppress("DEPRECATION")
-            URLClassLoader(task.classpath.map { it.toURI().toURL() }.toTypedArray(), javaClass.classLoader).use { loader ->
-                task.reports.junitXml.destination.listFiles { _, name -> name.endsWith(".xml") }?.forEach { file ->
-                    compiled = true
-                    processTestFile(task, loader, file)
+            if (testingSucceeded) {
+                @Suppress("DEPRECATION")
+                URLClassLoader(
+                    task.classpath.map { it.toURI().toURL() }.toTypedArray(),
+                    javaClass.classLoader
+                ).use { loader ->
+                    task.reports.junitXml.destination.listFiles { _, name -> name.endsWith(".xml") }?.forEach { file ->
+                        compiled = true
+                        processTestFile(task, loader, file)
+                    }
                 }
             }
 
