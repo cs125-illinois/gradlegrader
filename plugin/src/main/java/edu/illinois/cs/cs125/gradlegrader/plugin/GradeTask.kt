@@ -120,7 +120,7 @@ open class GradeTask : DefaultTask() {
     @Suppress("unused")
     fun run() {
         val config = project.extensions.getByType(GradePolicyExtension::class.java)
-        val exitManager = ExitManager(config)
+        // val exitManager = ExitManager(config)
         val documentBuilder = DocumentBuilderFactory.newInstance().apply {
             isValidating = false
             isNamespaceAware = false
@@ -129,7 +129,6 @@ open class GradeTask : DefaultTask() {
         val scoringResults = JsonArray()
         var pointsPossible = 0
         var pointsEarned = 0
-        var exitProcessWhenDone = false
 
         // Add custom tags
         config.reporting.tags.forEach {
@@ -246,7 +245,7 @@ open class GradeTask : DefaultTask() {
                 checkstyleResults.addProperty("explanation", "checkstyle crashed")
                 // If checkstyle crashed, it leaked the file handle
                 // Future cleans will crash and fail the build unless we bring down this process
-                exitProcessWhenDone = true
+                // exitProcessWhenDone = true
             }
             checkstyleResults.addProperty("description", "checkstyle")
             checkstyleResults.addProperty("pointsEarned", checkstylePoints)
@@ -330,12 +329,16 @@ open class GradeTask : DefaultTask() {
             contributors!!.forEach { contribArray.add(it) }
             results.add("contributors", contribArray)
         }
-        if (config.captureOutput) results.addProperty("output", taskOutput)
+        if (config.captureOutput) {
+            results.addProperty("output", taskOutput)
+        }
 
         // Make the JSON report(s)
         val resultJson = results.toString()
         config.reporting.jsonFile?.writeText(resultJson)
-        if (config.reporting.printJson) println(resultJson)
+        if (config.reporting.printJson) {
+            println(resultJson)
+        }
 
         // Make the pretty report
         if (config.reporting.printPretty.enabled) {
@@ -399,6 +402,6 @@ open class GradeTask : DefaultTask() {
         }
 
         // Exit as desired
-        exitManager.finished(exitProcessWhenDone)
+        // exitManager.finished(exitProcessWhenDone)
     }
 }

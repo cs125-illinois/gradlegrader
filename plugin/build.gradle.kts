@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "com.github.cs125-illinois"
-version = "2021.10.6"
+version = "2021.10.8"
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.5.31")
