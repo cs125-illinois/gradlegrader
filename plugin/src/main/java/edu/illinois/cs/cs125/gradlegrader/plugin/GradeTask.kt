@@ -100,7 +100,9 @@ open class GradeTask : DefaultTask() {
      */
     @Suppress("DEPRECATION")
     fun gatherCheckstyleInfo(task: Checkstyle) {
-        if (checkstyleOutputFile != null) throw GradleException("checkstyle task already set")
+        if (checkstyleOutputFile != null) {
+            throw GradleException("checkstyle task already set")
+        }
         checkstyleOutputFile = task.reports.xml.destination
     }
 
@@ -109,8 +111,10 @@ open class GradeTask : DefaultTask() {
      * @param task the detekt task
      */
     fun gatherDetektInfo(task: Detekt) {
-        if (detektOutputFile != null) throw GradleException("checkstyle task already set")
-        detektOutputFile = task.reports.xml.destination ?: project.file("build/reports/detekt/detekt.xml")
+        if (detektOutputFile != null) {
+            throw GradleException("checkstyle task already set")
+        }
+        detektOutputFile = task.reports.xml.outputLocation.get().asFile ?: project.file("build/reports/detekt/detekt.xml")
     }
 
     /**

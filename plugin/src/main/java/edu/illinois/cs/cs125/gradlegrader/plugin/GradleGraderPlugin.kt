@@ -148,11 +148,13 @@ class GradleGraderPlugin : Plugin<Project> {
             // Configure the test tasks
             testTasks.values.forEach {
                 gradeTask.listenTo(it)
+                @Suppress("SpellCheckingInspection")
                 if (!project.hasProperty("grade.ignoreproperties")) {
                     config.systemProperties.forEach { (prop, value) ->
                         it.systemProperty(prop, value)
                     }
                 }
+                @Suppress("SpellCheckingInspection")
                 if (project.hasProperty("grade.testfilter")) {
                     it.setTestNameIncludePatterns(mutableListOf(project.property("grade.testfilter") as String))
                     it.filter.isFailOnNoMatchingTests = false

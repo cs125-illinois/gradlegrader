@@ -11,22 +11,22 @@ import com.uchuhimo.konf.Config
 import com.uchuhimo.konf.ConfigSpec
 import com.uchuhimo.konf.source.json.toJson
 import com.uchuhimo.konf.source.yaml
-import io.ktor.application.Application
-import io.ktor.application.ApplicationCallPipeline
-import io.ktor.application.call
-import io.ktor.application.install
-import io.ktor.features.CORS
-import io.ktor.features.ContentNegotiation
-import io.ktor.features.XForwardedHeaderSupport
-import io.ktor.features.origin
 import io.ktor.http.HttpStatusCode
-import io.ktor.request.receiveText
-import io.ktor.response.respond
-import io.ktor.routing.get
-import io.ktor.routing.post
-import io.ktor.routing.routing
+import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationCallPipeline
+import io.ktor.server.application.call
+import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.plugins.cors.routing.CORS
+import io.ktor.server.plugins.forwardedheaders.ForwardedHeaders
+import io.ktor.server.plugins.origin
+import io.ktor.server.request.receiveText
+import io.ktor.server.response.respond
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.routing
 import mu.KotlinLogging
 import org.bson.BsonDateTime
 import org.bson.BsonDocument
@@ -66,7 +66,7 @@ val configuration = Config {
 
 val mongoCollection: MongoCollection<BsonDocument> = configuration[TopLevel.mongodb].run {
     val uri = MongoClientURI(this)
-    val database = uri.database ?: assert { "MONGO must specify database to use" }
+    val database = uri.database ?: error("MONGO must specify database to use")
     val collection = configuration[TopLevel.Mongo.collection]
     MongoClient(uri).getDatabase(database).getCollection(collection, BsonDocument::class.java)
 }
@@ -90,6 +90,7 @@ class InstantAdapter {
     fun instantFromJson(timestamp: String): Instant {
         return Instant.parse(timestamp)
     }
+
     @ToJson
     fun instantToJson(instant: Instant): String {
         return instant.toString()
@@ -97,7 +98,7 @@ class InstantAdapter {
 }
 
 fun Application.gradlegrader() {
-    install(XForwardedHeaderSupport)
+    install(ForwardedHeaders)
     install(CORS) {
         anyHost()
         allowNonSimpleContentTypes = true
@@ -145,10 +146,3 @@ fun main() {
 
     embeddedServer(Netty, host = uri.host, port = uri.port, module = Application::gradlegrader).start(wait = true)
 }
-
-@Suppress("unused")
-fun assert(block: () -> String): Nothing { throw AssertionError(block()) }
-@Suppress("unused")
-fun check(block: () -> String): Nothing { throw IllegalStateException(block()) }
-@Suppress("unused")
-fun require(block: () -> String): Nothing { throw IllegalArgumentException(block()) }

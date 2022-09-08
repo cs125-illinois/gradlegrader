@@ -1,12 +1,11 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    val kotlinVersion = "1.5.31"
-    kotlin("jvm") version kotlinVersion apply false
-    kotlin("kapt") version kotlinVersion apply false
-    id("com.github.johnrengelman.shadow") version "7.1.0"
-    id("org.jmailen.kotlinter") version "3.6.0" apply false
-    id("com.github.ben-manes.versions") version "0.39.0"
+    kotlin("jvm") version "1.7.10" apply false
+    id("com.github.johnrengelman.shadow") version "7.1.2"
+    id("org.jmailen.kotlinter") version "3.11.1" apply false
+    id("com.github.ben-manes.versions") version "0.42.0"
+    id("com.google.devtools.ksp").version("1.7.10-1.0.6") apply false
 }
 allprojects {
     repositories {
@@ -14,11 +13,8 @@ allprojects {
         maven(url = "https://jitpack.io")
     }
     tasks.withType<KotlinCompile> {
-        val javaVersion = JavaVersion.VERSION_1_8.toString()
-        sourceCompatibility = javaVersion
-        targetCompatibility = javaVersion
         kotlinOptions {
-            jvmTarget = javaVersion
+            jvmTarget = JavaVersion.VERSION_1_8.toString()
         }
     }
 }

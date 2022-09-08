@@ -3,28 +3,31 @@ import java.io.StringWriter
 import java.util.Properties
 
 group = "edu.illinois.cs.cs125"
-version = "2021.10.2"
+version = "2022.9.0"
 
 plugins {
     kotlin("jvm")
-    kotlin("kapt")
     application
     id("com.github.johnrengelman.shadow")
     id("org.jmailen.kotlinter")
-    id("com.palantir.docker") version "0.30.0"
+    id("com.palantir.docker") version "0.34.0"
+    id("com.google.devtools.ksp")
 }
 dependencies {
-    kapt("com.squareup.moshi:moshi-kotlin-codegen:1.12.0")
+    ksp("com.squareup.moshi:moshi-kotlin-codegen:1.14.0")
 
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.5.31")
-    implementation("io.ktor:ktor-server-netty:1.6.4")
-    implementation("org.mongodb:mongodb-driver:3.12.10")
-    implementation("com.squareup.moshi:moshi-kotlin-codegen:1.12.0")
-    implementation("com.github.cs125-illinois:ktor-moshi:1.0.3")
-    implementation("ch.qos.logback:logback-classic:1.2.6")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.7.10")
+    implementation("io.ktor:ktor-server-netty:2.1.1")
+    implementation("org.mongodb:mongodb-driver:3.12.11")
+    implementation("com.squareup.moshi:moshi-kotlin:1.14.0")
+    implementation("com.github.cs125-illinois:ktor-moshi:2022.9.0")
+    implementation("ch.qos.logback:logback-classic:1.4.0")
     implementation("com.uchuhimo:konf-core:1.1.2")
     implementation("com.uchuhimo:konf-yaml:1.1.2")
-    implementation("io.github.microutils:kotlin-logging:2.0.11")
+    implementation("io.github.microutils:kotlin-logging:2.1.23")
+    implementation("io.ktor:ktor-server-cors:2.1.1")
+    implementation("io.ktor:ktor-server-forwarded-header:2.1.1")
+    implementation("io.ktor:ktor-server-content-negotiation:2.1.1")
 }
 application {
     @Suppress("DEPRECATION")
@@ -32,9 +35,9 @@ application {
 }
 docker {
     name = "cs125/gradlegrader"
-    tag("latest", "cs125/gradlegrader:latest")
-    tag(version.toString(), "cs125/gradlegrader:$version")
     files(tasks["shadowJar"].outputs)
+    @Suppress("DEPRECATION")
+    tags("latest")
 }
 task("createProperties") {
     doLast {
@@ -52,12 +55,4 @@ task("createProperties") {
 }
 tasks.processResources {
     dependsOn("createProperties")
-}
-kotlin {
-    kotlinDaemonJvmArgs = listOf("-Dfile.encoding=UTF-8", "--illegal-access=permit")
-}
-kapt {
-    javacOptions {
-        option("--illegal-access", "permit")
-    }
 }
