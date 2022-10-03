@@ -75,10 +75,12 @@ class GradleGraderPlugin : Plugin<Project> {
                     )
                 }
                 partners.forEach {
-                    if (!config.identification.validate.isSatisfiedBy(it)) exitManager.fail(
-                        config.identification.message
-                            ?: "Invalid contributor format: $it"
-                    )
+                    if (!config.identification.validate.isSatisfiedBy(it)) {
+                        exitManager.fail(
+                            config.identification.message
+                                ?: "Invalid contributor format: $it"
+                        )
+                    }
                 }
                 gradeTask.contributors = partners
             }

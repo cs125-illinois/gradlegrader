@@ -7,16 +7,14 @@ plugins {
 }
 
 group = "com.github.cs125-illinois"
-version = "2022.9.0"
+version = "2022.10.0"
 
 dependencies {
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.7.10")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.7.10")
-    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin-api:1.7.10")
+    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin-api:1.7.20")
     implementation(gradleApi())
     implementation("com.google.code.gson:gson:2.9.1")
     implementation("org.apache.httpcomponents:httpclient:4.5.13")
-    implementation("org.apache.commons:commons-text:1.9")
+    implementation("org.apache.commons:commons-text:1.10.0")
     implementation("org.eclipse.jgit:org.eclipse.jgit:6.3.0.202209071007-r")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.13.4")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.4")

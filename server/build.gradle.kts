@@ -3,7 +3,7 @@ import java.io.StringWriter
 import java.util.Properties
 
 group = "edu.illinois.cs.cs125"
-version = "2022.9.0"
+version = "2022.10.0"
 
 plugins {
     kotlin("jvm")
@@ -16,18 +16,17 @@ plugins {
 dependencies {
     ksp("com.squareup.moshi:moshi-kotlin-codegen:1.14.0")
 
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.7.10")
-    implementation("io.ktor:ktor-server-netty:2.1.1")
+    implementation("io.ktor:ktor-server-netty:2.1.2")
     implementation("org.mongodb:mongodb-driver:3.12.11")
     implementation("com.squareup.moshi:moshi-kotlin:1.14.0")
     implementation("com.github.cs125-illinois:ktor-moshi:2022.9.0")
-    implementation("ch.qos.logback:logback-classic:1.4.0")
+    implementation("ch.qos.logback:logback-classic:1.4.3")
     implementation("com.uchuhimo:konf-core:1.1.2")
     implementation("com.uchuhimo:konf-yaml:1.1.2")
-    implementation("io.github.microutils:kotlin-logging:2.1.23")
-    implementation("io.ktor:ktor-server-cors:2.1.1")
-    implementation("io.ktor:ktor-server-forwarded-header:2.1.1")
-    implementation("io.ktor:ktor-server-content-negotiation:2.1.1")
+    implementation("io.github.microutils:kotlin-logging:3.0.0")
+    implementation("io.ktor:ktor-server-cors:2.1.2")
+    implementation("io.ktor:ktor-server-forwarded-header:2.1.2")
+    implementation("io.ktor:ktor-server-content-negotiation:2.1.2")
 }
 application {
     @Suppress("DEPRECATION")
