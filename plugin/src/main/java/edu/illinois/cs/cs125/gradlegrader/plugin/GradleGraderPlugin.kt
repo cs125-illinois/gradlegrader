@@ -53,6 +53,9 @@ class GradleGraderPlugin : Plugin<Project> {
         val gradeTask: GradeTask = project.tasks.register("score", GradeTask::class.java).get()
         gradeTask.mustRunAfter(targetTask)
 
+        project.tasks.register("fingerprintTests", FingerprintTask::class.java)
+        project.tasks.register("checkTestFingerprints", CheckFingerprintTask::class.java)
+
         val reconfTask = project.task("prepareForGrading").doLast {
             // Check projects' test tasks
             findSubprojects().forEach { subproject ->
