@@ -14,6 +14,7 @@ import org.eclipse.jgit.lib.StoredConfig
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.Task
+import org.gradle.api.internal.provider.MissingValueException
 import org.gradle.api.logging.StandardOutputListener
 import org.gradle.api.plugins.quality.Checkstyle
 import org.gradle.api.tasks.Input
@@ -114,7 +115,11 @@ open class GradeTask : DefaultTask() {
         if (detektOutputFile != null) {
             throw GradleException("checkstyle task already set")
         }
-        detektOutputFile = task.reports.xml.outputLocation.get().asFile ?: project.file("build/reports/detekt/detekt.xml")
+        detektOutputFile = try {
+            task.reports.xml.outputLocation.get().asFile ?: project.file("build/reports/detekt/detekt.xml")
+        } catch (e: MissingValueException) {
+            project.file("build/reports/detekt/detekt.xml")
+        }
     }
 
     /**
