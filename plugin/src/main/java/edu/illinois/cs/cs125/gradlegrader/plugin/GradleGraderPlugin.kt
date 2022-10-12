@@ -241,12 +241,20 @@ class GradleGraderPlugin : Plugin<Project> {
                 )
             }
             gradeTask.dependsOn(reconfTask)
-            if (config.checkpointing.yamlFile != null) {
+            try {
+                project.property("checkpoint").toString().let {
+                    currentCheckpoint = it
+                    gradeTask.currentCheckpoint = currentCheckpoint
+                }
+            } catch (_: Exception) {
+            }
+            if (gradeTask.currentCheckpoint == null && config.checkpointing.yamlFile != null) {
                 val configLoader = ObjectMapper(YAMLFactory()).also { it.registerKotlinModule() }
                 val checkpointConfig = configLoader.readValue<CheckpointConfig>(config.checkpointing.yamlFile!!)
                 currentCheckpoint = checkpointConfig.checkpoint
                 gradeTask.currentCheckpoint = currentCheckpoint
             }
+
             val evalPending = findSubprojects().toMutableList()
             evalPending.remove(project)
             if (evalPending.size == 0) {

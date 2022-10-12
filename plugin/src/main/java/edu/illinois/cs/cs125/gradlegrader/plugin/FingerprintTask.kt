@@ -14,7 +14,7 @@ fun String.fingerprint(): String = MessageDigest.getInstance("MD5").let { md ->
     return BigInteger(1, md.digest(filtered.toByteArray())).toString(16).padStart(32, '0')
 }
 
-abstract class FingerprintTask: DefaultTask() {
+abstract class FingerprintTask : DefaultTask() {
     init {
         group = "Publishing"
         description = "Fingerprint test suites."
