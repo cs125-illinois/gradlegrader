@@ -23,7 +23,7 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.4.4")
     implementation("com.uchuhimo:konf-core:1.1.2")
     implementation("com.uchuhimo:konf-yaml:1.1.2")
-    implementation("io.github.microutils:kotlin-logging:3.0.0")
+    implementation("io.github.microutils:kotlin-logging:3.0.2")
     implementation("io.ktor:ktor-server-cors:2.1.2")
     implementation("io.ktor:ktor-server-forwarded-header:2.1.2")
     implementation("io.ktor:ktor-server-content-negotiation:2.1.2")
