@@ -29,7 +29,7 @@ class ExitManager(private val policy: GradePolicyExtension) {
      * Exits the process if configured, otherwise does nothing.
      * @param forceExit whether to definitely bring down the process regardless of configuration
      */
-    fun finished(forceExit: Boolean = false) {
+    private fun finished(forceExit: Boolean = false) {
         if (!policy.keepDaemon || forceExit) {
             System.out.flush()
             System.err.flush()

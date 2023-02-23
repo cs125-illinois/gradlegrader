@@ -11,6 +11,7 @@ import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.StringEntity
 import org.apache.http.impl.client.HttpClientBuilder
 import org.eclipse.jgit.lib.StoredConfig
+import org.gradle.api.Action
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.Task
@@ -77,14 +78,19 @@ open class GradeTask : DefaultTask() {
      * Sets up a listener to the specified task's output.
      * @param task the task to listen to
      */
+    @Suppress("ObjectLiteralToLambda")
     fun listenTo(task: Task) {
         val outputListener = StandardOutputListener { taskOutput += it }
         task.logging.addStandardOutputListener(outputListener)
         task.logging.addStandardErrorListener(outputListener)
-        task.doLast {
-            task.logging.removeStandardOutputListener(outputListener)
-            task.logging.removeStandardErrorListener(outputListener)
-        }
+
+        // Can't use lambda or anonymous function here since it breaks Gradle's optimization
+        task.doLast(object : Action<Task> {
+            override fun execute(t: Task) {
+                t.logging.removeStandardOutputListener(outputListener)
+                t.logging.removeStandardErrorListener(outputListener)
+            }
+        })
     }
 
     /**
@@ -99,12 +105,11 @@ open class GradeTask : DefaultTask() {
      * Sets up the grader with information about the (singular) checkstyle task.
      * @param task the checkstyle task
      */
-    @Suppress("DEPRECATION")
     fun gatherCheckstyleInfo(task: Checkstyle) {
         if (checkstyleOutputFile != null) {
             throw GradleException("checkstyle task already set")
         }
-        checkstyleOutputFile = task.reports.xml.destination
+        checkstyleOutputFile = task.reports.xml.outputLocation.asFile.get()
     }
 
     /**
@@ -162,7 +167,10 @@ open class GradeTask : DefaultTask() {
                     val initFailResults = JsonObject()
                     initFailResults.addProperty("module", task.project.name)
                     initFailResults.addProperty("className", className)
-                    initFailResults.addProperty("failureStackTrace", it.getElementsByTagName("failure").item(0)?.textContent)
+                    initFailResults.addProperty(
+                        "failureStackTrace",
+                        it.getElementsByTagName("failure").item(0)?.textContent
+                    )
                     initFailResults.addProperty("description", className.substringAfterLast('.'))
                     initFailResults.addProperty("pointsPossible", 0)
                     initFailResults.addProperty("pointsEarned", 0)
@@ -171,19 +179,25 @@ open class GradeTask : DefaultTask() {
                     scoringResults.add(initFailResults)
                     return@examineMethod
                 }
-                val testMethod = testSuiteClass.methods.firstOrNull { m -> m.name == methodName } ?: return@examineMethod
+                val testMethod =
+                    testSuiteClass.methods.firstOrNull { m -> m.name == methodName } ?: return@examineMethod
                 val gradedAnnotation = testMethod.getDeclaredAnnotation(Graded::class.java) ?: return@examineMethod
                 val methodResults = JsonObject()
-                testMethod.getAnnotationsByType(Tag::class.java).forEach { tag -> methodResults.addProperty(tag.name, tag.value) }
+                testMethod.getAnnotationsByType(Tag::class.java)
+                    .forEach { tag -> methodResults.addProperty(tag.name, tag.value) }
                 methodResults.addProperty("module", task.project.name)
                 methodResults.addProperty("className", className)
                 methodResults.addProperty("testCase", testName)
-                val passed = it.getElementsByTagName("failure").length == 0 && it.getElementsByTagName("skipped").length == 0
+                val passed =
+                    it.getElementsByTagName("failure").length == 0 && it.getElementsByTagName("skipped").length == 0
                 methodResults.addProperty("passed", passed)
                 methodResults.addProperty("pointsPossible", gradedAnnotation.points)
                 methodResults.addProperty("pointsEarned", if (passed) gradedAnnotation.points else 0)
                 if (!passed) {
-                    methodResults.addProperty("failureStackTrace", it.getElementsByTagName("failure").item(0)?.textContent)
+                    methodResults.addProperty(
+                        "failureStackTrace",
+                        it.getElementsByTagName("failure").item(0)?.textContent
+                    )
                 }
                 methodResults.addProperty(
                     "description",
@@ -203,15 +217,16 @@ open class GradeTask : DefaultTask() {
             // Process the report XML files with a class loader that can access test classes
             var compiled = false
             if (testingSucceeded) {
-                @Suppress("DEPRECATION")
                 URLClassLoader(
                     task.classpath.map { it.toURI().toURL() }.toTypedArray(),
                     javaClass.classLoader
                 ).use { loader ->
-                    task.reports.junitXml.destination.listFiles { _, name -> name.endsWith(".xml") }?.forEach { file ->
-                        compiled = true
-                        processTestFile(task, loader, file)
-                    }
+                    task.reports.junitXml.outputLocation.asFileTree.files
+                        .filter { file -> file.name.endsWith(".xml") }
+                        .forEach { file ->
+                            compiled = true
+                            processTestFile(task, loader, file)
+                        }
                 }
             }
 
@@ -322,10 +337,17 @@ open class GradeTask : DefaultTask() {
         // Note score for commit requirement
         var needsCommit = false
         if (config.vcs.requireCommit && lastCommitId?.isNotEmpty() == true) {
-            val checkpointScoreInfo = scoreInfo!!.getCheckpointInfo(currentCheckpoint) ?: VcsCheckpointScoreInfo(currentCheckpoint)
+            val checkpointScoreInfo =
+                scoreInfo!!.getCheckpointInfo(currentCheckpoint) ?: VcsCheckpointScoreInfo(currentCheckpoint)
             needsCommit = (pointsEarned > checkpointScoreInfo.maxScore) && !repoIsClean
-            val newScoreInfo = VcsCheckpointScoreInfo(currentCheckpoint, lastCommitId, max(pointsEarned, checkpointScoreInfo.maxScore), needsCommit)
-            project.rootProject.file(".score.json").writeText(Gson().toJson(scoreInfo!!.withCheckpointInfoSet(newScoreInfo)))
+            val newScoreInfo = VcsCheckpointScoreInfo(
+                currentCheckpoint,
+                lastCommitId,
+                max(pointsEarned, checkpointScoreInfo.maxScore),
+                needsCommit
+            )
+            project.rootProject.file(".score.json")
+                .writeText(Gson().toJson(scoreInfo!!.withCheckpointInfoSet(newScoreInfo)))
         }
 
         // Add final properties
@@ -394,7 +416,8 @@ open class GradeTask : DefaultTask() {
                     fileResult.addProperty("path", file.absolutePath)
                     try {
                         fileResult.addProperty("data", file.readText())
-                    } catch (ignored: Exception) { }
+                    } catch (ignored: Exception) {
+                    }
                     filesResults.add(fileResult)
                 }
                 results.add("files", filesResults)
@@ -405,7 +428,8 @@ open class GradeTask : DefaultTask() {
             val client = HttpClientBuilder.create().build()
             try {
                 client.execute(request)
-            } catch (ignored: Exception) {} finally {
+            } catch (ignored: Exception) {
+            } finally {
                 client.close()
             }
         }
