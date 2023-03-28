@@ -5,7 +5,7 @@ package edu.illinois.cs.cs125.gradlegrader.plugin
  * @param checkpoints the list of per-checkpoint score information
  */
 data class VcsScoreInfo(
-    val checkpoints: List<VcsCheckpointScoreInfo>
+    val checkpoints: List<VcsCheckpointScoreInfo>,
 ) {
     fun getCheckpointInfo(checkpoint: String?): VcsCheckpointScoreInfo? {
         return checkpoints.firstOrNull { it.checkpoint == checkpoint }
@@ -26,5 +26,5 @@ data class VcsCheckpointScoreInfo(
     val checkpoint: String? = null,
     val lastSeenCommit: String? = null,
     val maxScore: Int = 0,
-    val increased: Boolean = false
+    val increased: Boolean = false,
 )

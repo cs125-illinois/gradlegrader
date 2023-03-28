@@ -17,13 +17,13 @@ fun File.checkFingerprint(base: File) {
         ?.trim()
         ?: throw GradleException(
             "Can't find fingerprint for file ${relativeTo(base).path}. " +
-                "Restore from Git or download again."
+                "Restore from Git or download again.",
         )
     val contentFingerprint = contents.fingerprint()
     if (fileFingerprint != contentFingerprint) {
         throw GradleException(
             "Fingerprint mismatch for test file ${relativeTo(base).path}. " +
-                "Undo your changes, restore from Git, or download again."
+                "Undo your changes, restore from Git, or download again.",
         )
     }
 }

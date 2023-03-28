@@ -120,7 +120,7 @@ fun Application.gradlegrader() {
                         .append("receivedVersion", BsonString(VERSION))
                         .append("receivedTime", BsonDateTime(Instant.now().toEpochMilli()))
                         .append("receivedIP", BsonString(call.request.origin.remoteHost))
-                        .append("receivedSemester", BsonString(configuration[TopLevel.semester]))
+                        .append("receivedSemester", BsonString(configuration[TopLevel.semester])),
                 )
                 currentStatus.uploadCount++
                 currentStatus.lastUpload = Instant.now()

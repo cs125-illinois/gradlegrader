@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.github.cs124-illinois"
-version = "2023.2.0"
+version = "2023.3.0"
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin-api:1.8.10")
@@ -15,7 +15,7 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("org.apache.httpcomponents:httpclient:4.5.14")
     implementation("org.apache.commons:commons-text:1.10.0")
-    implementation("org.eclipse.jgit:org.eclipse.jgit:6.4.0.202211300538-r")
+    implementation("org.eclipse.jgit:org.eclipse.jgit:6.5.0.202303070854-r")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.14.2")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.14.2")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.14.2")

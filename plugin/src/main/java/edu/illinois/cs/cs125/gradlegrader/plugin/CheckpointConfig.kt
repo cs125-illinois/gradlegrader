@@ -4,5 +4,5 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class CheckpointConfig(
-    val checkpoint: String
+    val checkpoint: String,
 )

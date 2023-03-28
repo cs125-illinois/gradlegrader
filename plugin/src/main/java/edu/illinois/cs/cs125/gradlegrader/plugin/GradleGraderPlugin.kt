@@ -74,14 +74,14 @@ class GradleGraderPlugin : Plugin<Project> {
                 if (!config.identification.countLimit.isSatisfiedBy(partners.size)) {
                     exitManager.fail(
                         config.identification.message
-                            ?: "Invalid number of contributors (${partners.size}) in identification file: ${txtFile.absolutePath}"
+                            ?: "Invalid number of contributors (${partners.size}) in identification file: ${txtFile.absolutePath}",
                     )
                 }
                 partners.forEach {
                     if (!config.identification.validate.isSatisfiedBy(it)) {
                         exitManager.fail(
                             config.identification.message
-                                ?: "Invalid contributor format: $it"
+                                ?: "Invalid contributor format: $it",
                         )
                     }
                 }
@@ -106,7 +106,7 @@ class GradleGraderPlugin : Plugin<Project> {
                     try {
                         val loadedInfo = Gson().fromJson(
                             project.rootProject.file(".score.json").readText(),
-                            VcsScoreInfo::class.java
+                            VcsScoreInfo::class.java,
                         )
                         @Suppress("SENSELESS_COMPARISON") // Possible for checkpoints to be null if loaded by Gson
                         if (loadedInfo.checkpoints != null) scoreInfo = loadedInfo
@@ -237,7 +237,7 @@ class GradleGraderPlugin : Plugin<Project> {
                 reconfTask.dependsOn(
                     project.tasks.register("clearBuildDir", Delete::class.java) { delTask ->
                         delTask.delete = setOf(project.buildDir)
-                    }.get()
+                    }.get(),
                 )
             }
             gradeTask.dependsOn(reconfTask)

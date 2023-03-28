@@ -169,7 +169,7 @@ open class GradeTask : DefaultTask() {
                     initFailResults.addProperty("className", className)
                     initFailResults.addProperty(
                         "failureStackTrace",
-                        it.getElementsByTagName("failure").item(0)?.textContent
+                        it.getElementsByTagName("failure").item(0)?.textContent,
                     )
                     initFailResults.addProperty("description", className.substringAfterLast('.'))
                     initFailResults.addProperty("pointsPossible", 0)
@@ -196,12 +196,12 @@ open class GradeTask : DefaultTask() {
                 if (!passed) {
                     methodResults.addProperty(
                         "failureStackTrace",
-                        it.getElementsByTagName("failure").item(0)?.textContent
+                        it.getElementsByTagName("failure").item(0)?.textContent,
                     )
                 }
                 methodResults.addProperty(
                     "description",
-                    gradedAnnotation.friendlyName.ifEmpty { methodName }
+                    gradedAnnotation.friendlyName.ifEmpty { methodName },
                 )
                 methodResults.addProperty("explanation", testName + (if (passed) " passed" else " failed"))
                 methodResults.addProperty("type", "test")
@@ -219,7 +219,7 @@ open class GradeTask : DefaultTask() {
             if (testingSucceeded) {
                 URLClassLoader(
                     task.classpath.map { it.toURI().toURL() }.toTypedArray(),
-                    javaClass.classLoader
+                    javaClass.classLoader,
                 ).use { loader ->
                     task.reports.junitXml.outputLocation.asFileTree.files
                         .filter { file -> file.name.endsWith(".xml") }
@@ -261,7 +261,7 @@ open class GradeTask : DefaultTask() {
                 checkstyleResults.addProperty("passed", passed)
                 checkstyleResults.addProperty(
                     "explanation",
-                    if (passed) "No checkstyle errors were reported" else "checkstyle found style issues"
+                    if (passed) "No checkstyle errors were reported" else "checkstyle found style issues",
                 )
                 if (passed) checkstylePoints = config.checkstyle.points
             } else {
@@ -292,7 +292,7 @@ open class GradeTask : DefaultTask() {
                 detektResults.addProperty("passed", passed)
                 detektResults.addProperty(
                     "explanation",
-                    if (passed) "No detekt errors were reported" else "detekt found issues"
+                    if (passed) "No detekt errors were reported" else "detekt found issues",
                 )
                 if (passed) detektPoints = config.detekt.points
             } else {
@@ -344,7 +344,7 @@ open class GradeTask : DefaultTask() {
                 currentCheckpoint,
                 lastCommitId,
                 max(pointsEarned, checkpointScoreInfo.maxScore),
-                needsCommit
+                needsCommit,
             )
             project.rootProject.file(".score.json")
                 .writeText(Gson().toJson(scoreInfo!!.withCheckpointInfoSet(newScoreInfo)))
@@ -399,7 +399,7 @@ open class GradeTask : DefaultTask() {
             if (needsCommit) {
                 println(
                     "CONGRATULATIONS: Your changes increased your score from " +
-                        "${scoreInfo!!.getCheckpointInfo(currentCheckpoint)?.maxScore ?: 0} to $pointsEarned!"
+                        "${scoreInfo!!.getCheckpointInfo(currentCheckpoint)?.maxScore ?: 0} to $pointsEarned!",
                 )
                 println("Commit your work right away! The autograder will not run again until you do.")
                 println(line)
